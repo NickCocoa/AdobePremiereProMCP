@@ -9,6 +9,8 @@ default:
 proto:
     @echo "Generating protobuf stubs..."
     buf generate proto/definitions
+    @echo "Restoring gen/go/go.mod (buf's clean:true wipes it on every generate)..."
+    ./scripts/restore-gen-go-mod.sh
 
 # Lint proto definitions
 proto-lint:

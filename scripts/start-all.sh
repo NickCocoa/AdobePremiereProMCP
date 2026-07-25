@@ -46,8 +46,17 @@ mkdir -p "$LOG_DIR"
 # --- Start Rust Media Engine (port 50052) ---
 echo -e "${CYAN}[1/3] Starting Rust media engine on port 50052...${NC}"
 cd "$PROJECT_ROOT/rust-engine"
-if [ -f "target/release/rust-engine" ]; then
-    ./target/release/rust-engine --port 50052 > "$LOG_DIR/rust-engine.log" 2>&1 &
+# The crate is named premierpro-media-engine; on Windows cargo appends .exe.
+RUST_BIN=""
+for candidate in \
+    "target/release/premierpro-media-engine.exe" \
+    "target/release/premierpro-media-engine" \
+    "target/release/rust-engine.exe" \
+    "target/release/rust-engine"; do
+    if [ -f "$candidate" ]; then RUST_BIN="$candidate"; break; fi
+done
+if [ -n "$RUST_BIN" ]; then
+    "./$RUST_BIN" --port 50052 > "$LOG_DIR/rust-engine.log" 2>&1 &
 else
     cargo run --release -- --port 50052 > "$LOG_DIR/rust-engine.log" 2>&1 &
 fi
