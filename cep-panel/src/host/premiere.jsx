@@ -198,8 +198,17 @@ function createSequence(paramsJson) {
             return _err("No project is open");
         }
 
-        // Use the new sequence preset creation if available
-        var seqID = app.project.createNewSequence(name);
+        // createNewSequence takes (name, placeholderID). Called with one
+        // argument it creates nothing and returns undefined, so this reported
+        // "createNewSequence returned no ID" -- or, via the MCP layer, an empty
+        // result that looked like success. The ID only has to be unique.
+        //
+        // Note this API makes Premiere show its New Sequence dialog, so it is
+        // not usable unattended; that is Adobe's behaviour, not something we
+        // can suppress. For scripted use call createSequenceFromPreset, which
+        // goes through the QE DOM and does not prompt.
+        var placeholderID = name + "-" + new Date().getTime();
+        var seqID = app.project.createNewSequence(name, placeholderID);
 
         if (seqID) {
             // Try to set properties on the newly created sequence
@@ -12407,10 +12416,24 @@ function listSequencePresets() {
 }
 
 // 2. createSequenceFromPreset
-function createSequenceFromPreset(name, presetPath) {
+// Takes a JSON params object, not positional arguments: the panel's
+// evalCommand dispatcher builds `fnName(argsJsonString)`, so a positional
+// signature receives the whole JSON blob as the first parameter and undefined
+// for the rest -- which surfaced as "presetPath is required" on every call.
+// Accepts both preset_path (the MCP tool's snake_case field) and presetPath.
+function createSequenceFromPreset(paramsJson) {
     try {
+        var params = paramsJson;
+        if (typeof paramsJson === "string") {
+            try { params = JSON.parse(paramsJson); }
+            catch (parseErr) { return _err("Invalid params JSON: " + parseErr.message); }
+        }
+        params = params || {};
+        var name = params.name;
+        var presetPath = params.preset_path || params.presetPath;
+
         if (!name) return _err("name is required");
-        if (!presetPath) return _err("presetPath is required");
+        if (!presetPath) return _err("preset_path is required");
         if (!new File(presetPath).exists) return _err("Preset file not found: " + presetPath);
         if (!app.project) return _err("No project open");
         if (typeof qe !== "undefined" && qe.project) {
