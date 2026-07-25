@@ -31,11 +31,12 @@ echo ""
 echo "Project root: $PROJECT_ROOT"
 echo ""
 
-# Clean up stale PID file
-if [ -f "$PID_FILE" ]; then
-    echo -e "${YELLOW}Cleaning up stale PID file...${NC}"
-    "$SCRIPT_DIR/stop-all.sh" 2>/dev/null || true
-fi
+# Always clean up first. Not just when a PID file exists: it is deleted on
+# every stop, so a service orphaned by a crash still holds its port and the
+# binds below would fail with EADDRINUSE. stop-all.sh sweeps the known ports
+# when it has no PID file to work from.
+echo -e "${YELLOW}Cleaning up any running services...${NC}"
+"$SCRIPT_DIR/stop-all.sh" >/dev/null 2>&1 || true
 
 # Create log directory
 mkdir -p "$LOG_DIR"
