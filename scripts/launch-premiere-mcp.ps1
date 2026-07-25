@@ -1,19 +1,23 @@
 <#
-    Launch Premiere Pro with the MCP bridge working, then start the backend
-    services.
+    Launch Premiere Pro with a project open, then start the backend services.
 
-    Why the cache gets deleted first: CEP decides whether an extension is
-    "Trusted" (i.e. may run unsigned under PlayerDebugMode) once, while it
-    registers extensions during Premiere startup. If a stale
-    cep_cache\PPRO_*_com.premierpro.mcp.bridge directory is present that
-    decision flips to a signature check, which an unsigned extension fails --
-    the log shows "Signature verification failed" and the panel is
-    unavailable for the whole session, including from the Extensions menu.
-    Clearing the cache before launch makes the load deterministic.
+    You usually do not need this script. Quitting Premiere normally and
+    reopening a project works on its own: the extension registers as Trusted,
+    the panel auto-starts (its manifest listens for ApplicationActivate) and
+    ts-bridge connects by itself. All this script really adds is doing those
+    steps in one command, plus one recovery step.
 
-    Once the extension loads as Trusted the panel auto-starts (its manifest
-    listens for ApplicationActivate) and ts-bridge reconnects on its own, so
-    no manual steps are needed.
+    The recovery step is clearing orphaned CEPHtmlEngine processes. If Premiere
+    is force-killed or crashes, its CEP host processes can survive; the next
+    launch then fails extension registration with "Signature verification
+    failed" and the panel is unavailable for the whole session -- including
+    from the Extensions menu, which is what makes it look intermittent. A
+    stale cep_cache directory is NOT the cause; verified by launching with the
+    cache intact and no orphans, which registers as Trusted every time.
+
+    A project must be open for the panel to stay alive: CEP unloads the
+    extension on the welcome screen, and ApplicationActivate only fires once
+    at startup, so there is no second auto-start. Hence -Project.
 #>
 
 [CmdletBinding()]
@@ -51,13 +55,13 @@ foreach ($v in 10, 11, 12, 13) {
     }
 }
 
-# --- 2. Premiere has to be closed for a cache clear to matter -------------
+# --- 2. Premiere must be closed: registration happens at startup ----------
 $running = Get-Process -Name 'Adobe Premiere Pro' -ErrorAction SilentlyContinue
 if ($running) {
     if (-not $Force) {
         Write-Warn 'Premiere Pro is already running.'
-        Write-Warn 'The extension load decision is made at startup, so quit Premiere'
-        Write-Warn 'and run this again (or pass -Force to close it for you).'
+        Write-Warn 'Extensions register at startup, so quit Premiere and run this'
+        Write-Warn 'again (or pass -Force to close it for you).'
         Write-Warn 'Save your work first -- Force does not prompt.'
         exit 1
     }
@@ -65,16 +69,19 @@ if ($running) {
     $running | Stop-Process -Force
     Start-Sleep -Seconds 3
 }
-Get-Process -Name 'CEPHtmlEngine' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
-# --- 3. Clear the stale CEP cache ----------------------------------------
-Write-Step 'Clearing stale CEP cache'
-Get-ChildItem "$env:LOCALAPPDATA\Temp\cep_cache" -Directory -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -like "*$extensionId*" } |
-    ForEach-Object {
-        Remove-Item -Recurse -Force $_.FullName -ErrorAction SilentlyContinue
-        Write-Warn "removed $($_.Name)"
-    }
+# --- 3. Clear orphaned CEP host processes ---------------------------------
+# This is the actual recovery step. Survivors of a crash or a force-kill make
+# the next launch fail extension registration.
+$orphans = Get-Process -Name 'CEPHtmlEngine' -ErrorAction SilentlyContinue
+if ($orphans) {
+    Write-Step "Clearing $($orphans.Count) orphaned CEPHtmlEngine process(es)"
+    $orphans | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+}
+
+# The cache is left alone on purpose: it is not the cause, and deleting it
+# only forces the panel to rebuild it on the next launch.
 
 # --- 4. Launch Premiere and wait for the panel's WebSocket ---------------
 # Open a project along with Premiere where possible. The panel's manifest
@@ -112,11 +119,12 @@ if (-not $panelUp) {
     Write-Warn 'Panel did not come up within 3 minutes. In order of likelihood:'
     Write-Warn '  1. No project open -- open one, then Window > Extensions >'
     Write-Warn '     PremierPro MCP Bridge (auto-start only fires at launch).'
-    Write-Warn '  2. Panel opened but rendered blank -- close it, delete'
-    Write-Warn "     $env:LOCALAPPDATA\Temp\cep_cache\PPRO_*_$extensionId,"
-    Write-Warn '     then reopen it from that menu.'
-    Write-Warn "  3. Check $env:LOCALAPPDATA\Temp\CEP12-PPRO.log for"
-    Write-Warn '     "Signature verification failed" and rerun this script.'
+    Write-Warn "  2. Check $env:LOCALAPPDATA\Temp\CEP12-PPRO.log for"
+    Write-Warn '     "Signature verification failed". If present, quit Premiere,'
+    Write-Warn '     confirm no CEPHtmlEngine processes remain, and rerun.'
+    Write-Warn '  3. Panel opened but rendered blank -- close it and reopen it'
+    Write-Warn "     from that menu; if it persists, delete"
+    Write-Warn "     $env:LOCALAPPDATA\Temp\cep_cache\PPRO_*_$extensionId."
 } else {
     Write-Host '    Panel is listening on 9801.' -ForegroundColor Green
 }
