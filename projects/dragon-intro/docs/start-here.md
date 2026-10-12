@@ -102,6 +102,9 @@ Begynn med det du kan ta feil om.
 | Fil | Status |
 |---|---|
 | `previs/shotlist.md` | Ferdig — v2, 25 shots, 115s |
+| `blender/previs_build.py` | Ferdig — bygger hele blockouten, kjort og verifisert |
+| `blender/render_previs.py` | Ferdig — kontaktark og full animatic |
+| `previs/contact_sheet.png` | Ferdig — alle 25 shots rendret |
 | `docs/dragon.md` | Ferdig |
 | `docs/valyrian.md` | Ferdig |
 | `docs/engine-choice.md` | Ferdig — anbefaling: Unreal, med Blender til modellering |
