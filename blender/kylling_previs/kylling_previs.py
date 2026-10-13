@@ -539,7 +539,7 @@ def animate_boy(b):
     run(b, 476, 576, [(8.5, 0.5), (4.5, 3.0), (1.0, 5.0), (-2.5, 5.0),
                       (-3.8, 2.5), (-2.5, 0.0), (-0.2, -1.8)])
     hd = heading(2.3, -1.8)
-    P(578, -0.05, -2.0, 0.5, -60, hd, 1.0, raw=True)   # sklir!
+    P(578, -0.05, -2.0, 0.85, -75, hd, 1.08, raw=True)  # sklir! beina til værs
     P(582, 0.15, -2.35, 0.25, -90, hd, 1.0, raw=True)
     P(590, 0.6, -2.75, 0.25, -90, hd, 1.0, raw=True)
     P(594, 0.65, -2.8, 0.25, -90, hd, 1.0, raw=True)
@@ -624,7 +624,7 @@ def animate_girl(g):
     run(g, 460, 560, [(8.5, 0.5), (4.5, 3.0), (1.0, 5.0), (-2.5, 5.0),
                       (-3.8, 2.5), (-2.5, 0.0), (-0.8, -1.7)])
     hd = heading(1.7, -1.7)
-    P(562, -0.7, -1.9, 0.5, -60, hd, 1.0, raw=True)    # sklir i malingen
+    P(562, -0.7, -1.9, 0.85, -75, hd, 1.08, raw=True)  # sklir i malingen, beina til værs
     P(566, -0.55, -2.3, 0.25, -90, hd, 1.0, raw=True)
     P(576, -0.3, -2.9, 0.25, -90, hd, 1.0, raw=True)
     P(580, -0.25, -3.0, 0.25, -90, hd, 1.0, raw=True)
@@ -700,6 +700,74 @@ def animate_props(tub, bucket_g, bucket_b):
 
     # Guttens spann foran til høyre
     K(bucket_b, 1, loc=(1.7, -2.7, 0), rot=(0, 0, 0))
+
+
+# --------------------------------------------------------------------------
+# Flere malingsmerker: fotavtrykk og flekker som hoper seg opp i rommet
+# --------------------------------------------------------------------------
+
+def footprints(name, coll, mats, path, f0, f1, every=4, from_frame=None):
+    """Fargede fotavtrykk langs en løperute (dukker opp når foten treffer)."""
+    pts = [Vector((x, y, 0.0)) for x, y in path]
+    segs = list(zip(pts, pts[1:]))
+    total = sum((b - a).length for a, b in segs)
+    n = 0
+    for i, f in enumerate(range(f0, f1 + 1, every)):
+        if from_frame and f < from_frame:
+            continue
+        d = (f - f0) / (f1 - f0) * total
+        for a, b in segs:
+            length = (b - a).length
+            if d <= length or (a, b) == segs[-1]:
+                p = a.lerp(b, min(d / length, 1.0))
+                dirv = (b - a).normalized()
+                break
+            d -= length
+        side = Vector((-dirv.y, dirv.x, 0)) * (0.13 if i % 2 else -0.13)
+        ob = blob_mesh(f"{name}_{n}", coll, pick(mats, n // 2))
+        ob.location = p + side
+        ob.rotation_euler.z = math.atan2(dirv.y, dirv.x)
+        pop(ob, f, full=(0.13, 0.07, 0.008), overshoot=1.0)
+        n += 1
+
+
+def splat_marks(name, coll, mats, center, f, count, radius, seed):
+    """En sky av små flekker på gulvet rundt et søl."""
+    rnd = random.Random(seed)
+    for i in range(count):
+        a = rnd.uniform(0, 2 * math.pi)
+        r = radius * math.sqrt(rnd.random())
+        ob = blob_mesh(f"{name}_{i}", coll, pick(mats, i))
+        ob.location = (center[0] + r * math.cos(a), center[1] + r * math.sin(a), 0.0)
+        sz = rnd.uniform(0.06, 0.17)
+        pop(ob, f + rnd.randint(0, 4), full=(sz, sz * rnd.uniform(0.6, 1.0), 0.01), overshoot=1.15)
+
+
+def build_paint_marks(coll, pm):
+    rainbow = list(pm.values())
+    coat = [pm["Turkis"], pm["Lilla"]]
+    # Flekker rundt hvert søl
+    splat_marks("Flekker_Kast1", coll, [pm["Rosa"]], (-2.6, -1.4), 116, 8, 0.7, 41)
+    splat_marks("Flekker_Kast2", coll, [pm["Gul"]], (-0.5, -2.0), 134, 10, 1.0, 42)
+    splat_marks("Flekker_Balje", coll, rainbow, (0.0, 0.4), 248, 16, 1.4, 43)
+    splat_marks("Flekker_Rister", coll, rainbow, (-1.0, 0.4), 294, 18, 1.6, 44)
+    splat_marks("Flekker_Treff", coll, [pm["Lilla"]], (1.9, 0.0), 328, 7, 0.6, 45)
+    splat_marks("Flekker_Bom", coll, [pm["Rosa"]], (-1.3, 0.3), 398, 8, 0.7, 46)
+    splat_marks("Flekker_Taarn", coll, [pm["Rosa"], pm["Himmelblaa"], pm["Lime"]], (-1.1, 5.7), 526, 12, 1.0, 47)
+    splat_marks("Flekker_Skli", coll, rainbow, (-0.3, -2.5), 566, 14, 1.1, 48)
+    splash("Sprut_Skli_Jente", coll, rainbow, (-0.7, -1.9, 0.1), 562, toward_x=1, count=8, seed=49)
+    splash("Sprut_Skli_Gutt", coll, rainbow[2:] + rainbow[:2], (-0.05, -2.0, 0.1), 578, toward_x=1, count=8, seed=50)
+    # Fotavtrykk: gutten drypper maling etter dukkingen, hun etter å ha tråkket i søl
+    footprints("Spor_Gutt_Flukt", coll, coat, [(-0.8, 0.4), (-3.0, 0.5), (-8.5, 0.9)], 388, 436)
+    footprints("Spor_Jente_Jakt", coll, [pm["Rosa"]],
+               [(2.95, 0.95), (1.5, 1.6), (-0.3, 1.9), (-3.0, 0.9), (-8.5, 0.9)], 400, 448)
+    deep = [(8.5, 0.5), (4.5, 3.0), (1.0, 5.0), (-2.5, 5.0), (-3.8, 2.5), (-2.5, 0.0)]
+    footprints("Spor_Jente_Dyp", coll, [pm["Rosa"], pm["Himmelblaa"]], deep + [(-0.8, -1.7)], 460, 560,
+               from_frame=514)
+    footprints("Spor_Gutt_Dyp", coll, coat, deep + [(-0.2, -1.8)], 476, 576)
+    footprints("Spor_Jente_Slutt", coll, rainbow,
+               [(-0.5, -2.9), (-2.8, -2.2), (-2.2, 1.6), (-1.2, 2.2), (-0.8, -1.5), (-0.2, -4.3)], 672, 732)
+    footprints("Spor_Gutt_Slutt", coll, coat, [(0.6, -2.9), (1.6, -1.0), (0.95, 0.4)], 680, 712)
 
 
 # --------------------------------------------------------------------------
@@ -826,7 +894,7 @@ def build_paint_fx(coll, pm, boy, girl, cam_end):
         start = (-0.9 + d.x * 0.45, 0.4 + d.y * 0.45, 1.7)
         throw_blob(f"Klatt_Rundt_{i}", coll, paint, start, (*tgt, 0.05), ft, ft + 10, height=0.8)
         floor_puddle(f"Dam_Rundt_{i}", coll, paint, tgt, ft + 10,
-                     size=0.8 if i == 1 else 0.4, grow=12)
+                     size=1.2 if i == 1 else 0.4, grow=12)
         splash(f"Sprut_Rundt_{i}", coll, paint, (*tgt, 0.05), ft + 10,
                toward_x=-1 if tgt[0] < -0.9 else 1, count=4, seed=10 + i)
 
@@ -1045,8 +1113,14 @@ def build_cinematic(cams, boy, girl, coll):
 
     # Wide: panorerer mykt etter gutten, og etter begge når søster er med
     aim_w = empty("Sikte_Wide", coll, (0.2, 0, 1.0))
-    key_influence(copy_loc(aim_w, head_b), [(1, 0.45)])
-    key_influence(copy_loc(aim_w, head_g), [(1, 0.0), (210, 0.0), (224, 0.33)])
+    key_influence(copy_loc(aim_w, head_b), [(1, 0.45), (414, 0.45), (424, 0.0)])
+    key_influence(copy_loc(aim_w, head_g), [(1, 0.0), (210, 0.0), (224, 0.33), (414, 0.33), (424, 0.0)])
+    # Kameraet blir stående mot venstre mens de løper ut, så piskepanorering til høyre
+    for f, loc in ((1, (0.2, 0, 1.0)), (414, (0.2, 0, 1.0)), (424, (-3.2, 0.7, 1.0)),
+                   (449, (-3.2, 0.7, 1.0)), (455, (6.5, 1.8, 1.0)), (470, (6.0, 2.0, 1.0)),
+                   (484, (4.2, 2.6, 1.0))):
+        aim_w.location = loc
+        aim_w.keyframe_insert("location", frame=f)
     aim(cams["wide"], aim_w)
     dof(cams["wide"], mid, 5.6)
     push(cams["wide"], [(1, 211, 0.9)])
@@ -1058,7 +1132,7 @@ def build_cinematic(cams, boy, girl, coll):
         aim(cams[key_], a)
         dof(cams[key_], mid, f)
     push(cams["medium"], [(212, 228, 0.3), (228, 305, 0.6)])
-    push(cams["deep"], [(452, 500, 0.8), (536, 660, 1.2)])
+    push(cams["deep"], [(484, 500, 0.4), (536, 660, 1.2)])
 
     # Nærbilder: følger hodet, grunn dybdeskarphet, liten innkjøring
     cu = [
@@ -1157,7 +1231,7 @@ def build_cameras(coll):
         (364, "wide", "SH032 Hun henter spann"),
         (378, "cu_boy_front", "SH033 CU Gutten: uh-oh"),
         (390, "wide", "SH034 Jakt ut av bildet"),
-        (452, "deep", "SH040 Jakt dypt i rommet"),
+        (484, "deep", "SH040 Jakt dypt i rommet"),
         (500, "cu_run", "SH040b CU Søster raser forbi og river ned tårnet, han etter"),
         (536, "deep", "SH040c Jakt frem, de sklir"),
         (594, "cu_lying", "SH041 CU Ligger og ler sammen"),
@@ -1352,6 +1426,7 @@ def main():
     build_cinematic(cams, boy, girl, c_cam)
     build_paint_fx(c_fx, pm, boy, girl, cams["end"])
     build_knockables(c_props, c_fx, pm, metal)
+    build_paint_marks(c_fx, pm)
     build_finale(boy, girl, cams["end"], c_char)
     setup_render()
     apply_cuts()

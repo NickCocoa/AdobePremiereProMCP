@@ -37,6 +37,7 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 - Hvit cyclorama (gulvet bøyer seg opp i bakveggen), ingen synlig horisont.
 - Tre-punkts område-lys: varm key, kjølig fill, rim bakfra.
 - Rekvisitter: trekasse, en stor regnbuebalje midt på gulvet (én kile i hver farge), et gult og et rosa malingsspann.
+- Rommet blir gradvis mer malt. Det kommer flekker rundt hvert søl (kast, balja, risting, treff, tårnet, skliingen), og fargede fotavtrykk etter dem når de løper. Gutten drypper turkis og lilla etter dukkingen, og søster tråkker rosa. Dette lages i `build_paint_marks()`.
 - Malingen er i lyse, lekne farger: rosa, turkis, gul, lime, lilla, oransje og himmelblå. Hvert kast har sin egen farge, håndavtrykkene går i regnbuerekkefølge, og gutten blir dekket av flere farger når han dukkes i balja.
 
 ## Handling (24 fps, 1088 frames ≈ 45 sek)
@@ -45,8 +46,8 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 |--------|-----|-----------|
 | 1–167 | Åpning | Et følgeskudd bakfra følger gutten (svart) mens han løper inn og velter en malingsboks på veien til balja. Nærbilde fra balja: han titter ned i regnbuemalingen og jubler. Han kaster maling rundt seg (total), og et innklipp viser håndavtrykkene på gulvet. |
 | 168–261 | Søster kommer | Søster (hvit) løper inn og sparker ham (f186). Han tar salto, og et lavt nærbilde viser plasket når han havner med hodet først i balja (f202). Hun ler, og han spretter opp full av maling og rister seg som en hund. |
-| 262–407 | Malingskamp | Gutten kaster på henne (treff f282). Hun blir sint, ser spannet (nærbilde «aha!»), kaster og bommer, og jager ham ut av bildet. |
-| 408–627 | Jakten dypt i rommet | Hun kommer inn igjen, og han jager henne. Hun raser forbi kameraet og river ned tårnet. De sklir og ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
+| 262–439 | Malingskamp | Gutten kaster på henne (treff f282). Hun blir sint, ser spannet (nærbilde «aha!»), kaster og bommer, og jager ham. Totalen blir stående mens begge løper ut av bildet til venstre. Så panorerer kameraet raskt til høyre (f405–411), og de kommer løpende inn igjen fra høyre, hun først og han etter. |
+| 440–627 | Jakten dypt i rommet | De løper dypt inn i rommet. Hun raser forbi kameraet og river ned tårnet. Begge sklir i den store gule malingsdammen med beina til værs og malingssprut, og de ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
 | 628–1088 | Slutten | Hun løper mot kamera og dukker, og malingen hans treffer linsa (f698). Nærbilde av gutten: «oi!», og han fniser. Hun tørker linsa (f724–734) og smiler. Han kommer og klemmer henne (f794). Det blir mørkt med et spotlys ovenfra (f914–932), og de vinker. Hun hopper opp og klemmer broren (nærbilde, f1020), og kameraet trekker seg bak i spotlyset. Slutt. |
 
 ### Ting som veltes
@@ -89,7 +90,7 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 | 320 | `CAM_01_Wide` | SH032 Hun henter spann |
 | 334 | `CAM_CU_03_Gutt` | SH033 CU Gutten: uh-oh |
 | 346 | `CAM_01_Wide` | SH034 Jakt ut av bildet |
-| 408 | `CAM_03_Dyp` | SH040 Jakt dypt i rommet |
+| 440 | `CAM_03_Dyp` | SH040 Jakt dypt i rommet |
 | 456 | `CAM_CU_08_Loep` | SH040b CU Søster raser forbi og river ned tårnet, han etter |
 | 492 | `CAM_03_Dyp` | SH040c Jakt frem, de sklir |
 | 550 | `CAM_CU_05_Liggende` | SH041 CU Ligger og ler sammen |
