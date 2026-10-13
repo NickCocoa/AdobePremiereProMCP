@@ -39,15 +39,15 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 - Rekvisitter: trekasse, en stor regnbuebalje midt på gulvet (én kile i hver farge), et gult og et rosa malingsspann.
 - Malingen er i lyse, lekne farger: rosa, turkis, gul, lime, lilla, oransje og himmelblå. Hvert kast har sin egen farge, håndavtrykkene går i regnbuerekkefølge, og gutten blir dekket av flere farger når han dukkes i balja.
 
-## Handling (24 fps, 1078 frames ≈ 45 sek)
+## Handling (24 fps, 1088 frames ≈ 45 sek)
 
-| Frames | Shot / kamera | Hva skjer |
-|--------|---------------|-----------|
-| 1–157 | SH010 `CAM_01_Wide` | Gutten (svart) løper inn fra venstre, gjør en piruett og finner malingsbalja. Han kaster maling rundt seg to ganger og maler litt på gulvet med hendene. Han rygger for å beundre verket sitt. |
-| 158–241 | SH020 `CAM_02_Medium` | Søster (hvit) løper inn fra høyre og sparker ham (f176). Han flyr i salto og havner med hodet ned i balja (f192). Han spreller, spretter opp full av maling og rister seg som en hund. |
-| 242–397 | SH030 `CAM_01_Wide` | Gutten kaster maling på henne (treff f272). Hun stamper, finner et spann ved trekassa og kaster, men bommer. Så kaster hun hele spannet etter ham og jager ham ut av bildet til venstre. |
-| 398–607 | SH040 `CAM_03_Dyp` | Hun kommer først inn igjen fra høyre, og han løper etter. De løper dypt inn i rommet og frem igjen, sklir i malingsdammen og glir på ryggen. De ligger og ler, spretter opp, tar en felles piruett og dunker borti hverandre. |
-| 608–1078 | SH060 `CAM_04_Ende` | Søster erter ham og løper dypt inn i rommet og så rett mot kamera. Gutten øser maling fra balja og kaster. Hun dukker unna, og malingen treffer linsa (f688). Hun tørker av linsa (f714–724), puster lettet ut og smiler i kamera. Gutten kommer løpende inn og klemmer henne (f784), og begge smiler og ler inn i kamera mens kameraet zoomer sakte inn. Så blir det mørkt rundt dem (f904–922), og et spotlys ovenfra lyser dem opp. Kameraet trekker seg rolig bakover og litt opp mens de vinker farvel. Til slutt får søster en idé, hopper opp og klemmer broren (f1010). Han tar imot henne, vakler litt, og de står og klemmer og ler i spotlyset. Slutt. |
+| Frames | Del | Hva skjer |
+|--------|-----|-----------|
+| 1–167 | Åpning | Et følgeskudd bakfra følger gutten (svart) mens han løper inn og velter en malingsboks på veien til balja. Nærbilde fra balja: han titter ned i regnbuemalingen og jubler. Han kaster maling rundt seg (total), og et innklipp viser håndavtrykkene på gulvet. |
+| 168–261 | Søster kommer | Søster (hvit) løper inn og sparker ham (f186). Han tar salto, og et lavt nærbilde viser plasket når han havner med hodet først i balja (f202). Hun ler, og han spretter opp full av maling og rister seg som en hund. |
+| 262–407 | Malingskamp | Gutten kaster på henne (treff f282). Hun blir sint, ser spannet (nærbilde «aha!»), kaster og bommer, og jager ham ut av bildet. |
+| 408–627 | Jakten dypt i rommet | Hun kommer inn igjen, og han jager henne. Hun raser forbi kameraet og river ned tårnet. De sklir og ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
+| 628–1088 | Slutten | Hun løper mot kamera og dukker, og malingen hans treffer linsa (f698). Nærbilde av gutten: «oi!», og han fniser. Hun tørker linsa (f724–734) og smiler. Han kommer og klemmer henne (f794). Det blir mørkt med et spotlys ovenfra (f914–932), og de vinker. Hun hopper opp og klemmer broren (nærbilde, f1020), og kameraet trekker seg bak i spotlyset. Slutt. |
 
 ### Ting som veltes
 
@@ -56,42 +56,54 @@ Sju ting står plassert langs løpeveiene og veltes når figurene løper forbi. 
 | Frame | Hvem | Hva |
 |-------|------|-----|
 | 31 | Gutten løper inn | Gul malingsboks velter og søler |
-| 157 | Søster løper inn | Krakk velter |
-| 341 | Gutten flykter | Kjegle velter |
-| 351 | Gutten flykter | Eskestabel flyr |
-| 458 | Søster dypt i rommet | Tårn av malingsbokser (rosa, blå, lime) raser og søler |
-| 635 | Gutten jager henne | Lime malingsboks velter og søler |
-| 655 | Søster løper mot kamera | Krakk velter |
+| 167 | Søster løper inn | Krakk velter |
+| 351 | Gutten flykter | Kjegle velter |
+| 361 | Gutten flykter | Eskestabel flyr |
+| 468 | Søster dypt i rommet | Tårn av malingsbokser (rosa, blå, lime) raser og søler |
+| 645 | Gutten jager henne | Lime malingsboks velter og søler |
+| 665 | Søster løper mot kamera | Krakk velter |
 
 Avslutningen med mørke, spotlys, kameraet som trekker seg bak, vinkingen og hoppeklemmen lages i `build_finale()`.
 
 Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatter()` sender en stabel flyvende.
 
-### Shotliste med nærbilder
+### Shotliste
 
 | Frame | Kamera | Shot |
 |-------|--------|------|
-| 1 | `CAM_01_Wide` | SH010 Gutten leker og søler |
-| 158 | `CAM_02_Medium` | SH020 Søster kommer |
-| 168 | `CAM_CU_01_Gutt_OTS` | SH021 **CU** Gutten ser henne, over skulderen hennes |
-| 174 | `CAM_02_Medium` | SH022 Spark, hodet ned i balja |
-| 186 | `CAM_CU_02_Jente_Ler` | SH023 **CU** Søster ler av ham, med beina hans i forgrunnen |
-| 218 | `CAM_02_Medium` | SH024 Han spretter opp |
-| 234 | `CAM_CU_03_Gutt` | SH025 **CU** Gutten full av maling, rister seg |
-| 252 | `CAM_01_Wide` | SH030 Han kaster tilbake |
-| 269 | `CAM_CU_04_Jente_Treff` | SH031 **CU** Søster blir truffet og blir sint |
-| 302 | `CAM_01_Wide` | SH032 Hun henter spann |
-| 324 | `CAM_CU_03_Gutt` | SH033 **CU** Gutten: «uh-oh» |
-| 336 | `CAM_01_Wide` | SH034 Jakt ut av bildet |
-| 398 | `CAM_03_Dyp` | SH040 Jakt dypt i rommet |
-| 446 | `CAM_CU_08_Loep` | SH040b **CU** Søster raser forbi kameraet og river ned tårnet, han like etter |
-| 482 | `CAM_03_Dyp` | SH040c Jakt frem, de sklir |
-| 540 | `CAM_CU_05_Liggende` | SH041 **CU** ovenfra: de ligger hode mot hode og ler sammen |
-| 564 | `CAM_03_Dyp` | SH042 Piruett og dunk |
-| 606 | `CAM_CU_06_Erting_OTS` | SH043 **CU** Søster erter ham, over skulderen hans |
-| 618 | `CAM_04_Ende` | SH060 Jakt mot kamera, maling på linsa, hun tørker og smiler, klem |
-| 818 | `CAM_CU_07_Klem` | SH061 **CU** Klem, de fniser |
-| 860 | `CAM_04_Ende` | SH062 Varmt smil i kamera. Det blir mørkt, et spotlys ovenfra lyser dem opp, kameraet trekker seg bak og de vinker. Søster hopper opp og klemmer broren. Slutt |
+| 1 | `CAM_00_Tracking` | SH010 Følger gutten bakfra til balja |
+| 76 | `CAM_CU_09_Fra_Balja` | SH011 CU fra balja: han oppdager regnbuemalingen |
+| 100 | `CAM_01_Wide` | SH012 Kaster maling rundt seg |
+| 142 | `CAM_CU_10_Handavtrykk` | SH013 Innklipp: håndavtrykk på gulvet |
+| 158 | `CAM_01_Wide` | SH014 Beundrer verket sitt |
+| 168 | `CAM_02_Medium` | SH020 Søster kommer |
+| 178 | `CAM_CU_01_Gutt_OTS` | SH021 CU Gutten ser henne (OTS) |
+| 184 | `CAM_02_Medium` | SH022 Spark, hodet ned i balja |
+| 194 | `CAM_CU_11_Plask` | SH0225 CU Plask, hodet først i balja |
+| 208 | `CAM_CU_02_Jente_Ler` | SH023 CU Søster ler av ham |
+| 228 | `CAM_02_Medium` | SH024 Han spretter opp |
+| 244 | `CAM_CU_03_Gutt` | SH025 CU Gutten full av maling |
+| 262 | `CAM_01_Wide` | SH030 Han kaster tilbake |
+| 279 | `CAM_CU_04_Jente_Treff` | SH031 CU Søster blir truffet, sint |
+| 310 | `CAM_CU_12_Aha` | SH0315 CU Søster ser spannet: aha! |
+| 320 | `CAM_01_Wide` | SH032 Hun henter spann |
+| 334 | `CAM_CU_03_Gutt` | SH033 CU Gutten: uh-oh |
+| 346 | `CAM_01_Wide` | SH034 Jakt ut av bildet |
+| 408 | `CAM_03_Dyp` | SH040 Jakt dypt i rommet |
+| 456 | `CAM_CU_08_Loep` | SH040b CU Søster raser forbi og river ned tårnet, han etter |
+| 492 | `CAM_03_Dyp` | SH040c Jakt frem, de sklir |
+| 550 | `CAM_CU_05_Liggende` | SH041 CU Ligger og ler sammen |
+| 574 | `CAM_03_Dyp` | SH042 Piruett og dunk |
+| 616 | `CAM_CU_06_Erting_OTS` | SH043 CU Søster erter ham (OTS) |
+| 628 | `CAM_04_Ende` | SH060 Jakt mot kamera, maling på linsa |
+| 708 | `CAM_CU_13_Oi` | SH0605 CU Gutten: oi! fniser |
+| 722 | `CAM_04_Ende` | SH0607 Søster tørker linsa og smiler |
+| 828 | `CAM_CU_07_Klem` | SH061 CU Klem, fniser til hverandre |
+| 870 | `CAM_04_Ende` | SH062 Varmt smil i kamera, mørkt, spot, de vinker |
+| 1010 | `CAM_CU_14_Hoppeklem` | SH063 CU Hoppeklem |
+| 1048 | `CAM_04_Ende` | SH064 Klem i spotlyset, kamera trekker seg bak |
+
+Ingen skudd er lenger enn ca. 6 sekunder.
 
 Over-skulder-bildene (OTS) har den andre figuren i forgrunnen, så relasjonen mellom dem er med i bildet.
 
@@ -99,7 +111,8 @@ Over-skulder-bildene (OTS) har den andre figuren i forgrunnen, så relasjonen me
 
 Dette gjør `build_cinematic()`:
 - **Følger hodene:** alle kameraer unntatt sluttkameraet har *Track To* mot et fokuspunkt i hodehøyde, `Fokus_Gutt`, `Fokus_Jente` eller `Fokus_Midt` mellom dem. Bildet panorerer mykt etter figurene og følger hodet også i salto og når de ligger.
-- **Wide panorerer etter handlingen:** først etter gutten, og etter begge når søster kommer inn. Det står i øyehøyde (1,7 m) i stedet for ovenfra.
+- **Følgeskudd i åpningen:** `CAM_00_Tracking` henger etter gutten bakfra (Copy Location med offset) og sikter på hodet hans.
+- **Wide panorerer etter handlingen:** først etter gutten, og etter begge når søster kommer inn. Det står i øyehøyde (1,7 m) i stedet for ovenfra, og det brukes der handlingen trenger oversikt.
 - **Sakte innkjøringer:** hvert skudd skyver sakte innover, 0,15–1,2 m i løpet av skuddet.
 - **Dybdeskarphet:** nærbilder på f/2.0 og løpe-nærbildet på f/2.8. Medium, dyp og sluttkameraet bruker f/4, og wide f/5.6. Fokus følger alltid hodene.
 - **Bevegelsesuskarphet:** slått på for alle skudd.

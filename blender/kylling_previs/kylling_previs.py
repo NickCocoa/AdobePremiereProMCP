@@ -566,7 +566,11 @@ def animate_boy(b):
     P(730, 0.95, 0.4, 0, 28, -7, 0.92)                 # KAST
     P(736, 0.95, 0.4, 0, 8, -7, 1.0)
     P(742, 0.95, 0.4, 0, 0, -7, 1.0)
-    teleport(b, 743, 850, (4.5, -4.6, 0))              # ut av bildet bak malingen
+    P(746, 0.95, 0.4, 0, -12, -7, 1.16)                # «oi!»
+    P(752, 0.95, 0.4, 0, 12, -7, 0.9)                  # holder seg for munnen
+    for i, f in enumerate(range(756, 767, 4)):         # fniser
+        P(f, 0.95, 0.4, 0, -8 if i % 2 == 0 else 4, -7, 1.08 if i % 2 == 0 else 0.94)
+    teleport(b, 767, 850, (4.5, -4.6, 0))              # ut av bildet bak malingen
 
     # Løper inn og klemmer søsteren, smiler i kamera
     run(b, 850, 866, [(4.5, -4.6), (0.55, -5.0)], lean=18)
@@ -1066,11 +1070,28 @@ def build_cinematic(cams, boy, girl, coll):
         ("cu_tease", head_g, [(660, 672, 0.2)]),
         ("cu_hug", mid, [(904, 946, 0.4)]),
         ("cu_run", mid, [(500, 536, 0.3)]),  # f/2.8 under, raske bevegelser
+        ("cu_tub", head_b, [(76, 100, 0.2)]),
+        ("cu_splash", head_b, [(238, 252, 0.2)]),
+        ("cu_aha", head_g, [(354, 364, 0.15)]),
+        ("cu_oops", head_b, [(752, 766, 0.2)]),
+        ("cu_jump", mid, [(1086, 1124, 0.3)]),
     ]
     for key_, target, windows in cu:
         aim(cams[key_], target)
         dof(cams[key_], target, 2.8 if key_ == "cu_run" else 2.0)
         push(cams[key_], windows)
+
+    # Følgeskudd bakfra: kameraet henger etter gutten (x/y), fast høyde, sikter på hodet
+    tr = cams["track"]
+    c = tr.constraints.new("COPY_LOCATION")
+    c.target = boy
+    c.use_z = False
+    c.use_offset = True
+    aim(tr, head_b)
+    dof(tr, head_b, 2.8)
+
+    # Innklipp av håndavtrykkene: rett ovenfra, sakte ned mot gulvet
+    push(cams["cu_prints"], [(156, 172, 0.25)])
 
     # Sluttkameraet har egne nøkler, bare fokus her
     dof(cams["end"], mid, 4.0)
@@ -1106,20 +1127,34 @@ def build_cameras(coll):
         "cu_tease": cam("CAM_CU_06_Erting_OTS", (1.6, -3.6, 1.6), (-0.4, -2.9, 1.3), 34),
         "cu_hug": cam("CAM_CU_07_Klem", (0.6, -6.6, 1.55), (0.06, -5.0, 1.45), 35),
         "cu_run": cam("CAM_CU_08_Loep", (-2.2, 4.2, 1.4), (0.5, 5.0, 1.2), 30),
+        # Følger gutten bakfra (posisjonen er en offset fra ham, se build_cinematic)
+        "track": cam("CAM_00_Tracking", (-2.4, -0.6, 1.5), (0, 0.4, 1.0), 30),
+        "cu_tub": cam("CAM_CU_09_Fra_Balja", (0.4, 0.2, 0.62), (-0.9, 0.4, 1.45), 16),
+        "cu_prints": cam("CAM_CU_10_Handavtrykk", (-0.2, -2.7, 1.1), (-0.25, -1.45, 0.0), 30),
+        "cu_splash": cam("CAM_CU_11_Plask", (1.2, -1.1, 0.9), (0.0, 0.4, 0.9), 28),
+        "cu_aha": cam("CAM_CU_12_Aha", (3.9, 1.7, 1.3), (2.25, 0.35, 1.45), 40),
+        "cu_oops": cam("CAM_CU_13_Oi", (0.8, -1.5, 1.5), (0.95, 0.4, 1.35), 42),
+        "cu_jump": cam("CAM_CU_14_Hoppeklem", (0.35, -7.3, 1.6), (0.3, -5.0, 1.6), 30),
     }
 
     scene = bpy.context.scene
     shots = [
-        (1, "wide", "SH010 Gutten leker og søler"),
+        (1, "track", "SH010 Følger gutten bakfra til balja"),
+        (76, "cu_tub", "SH011 CU fra balja: han oppdager regnbuemalingen"),
+        (100, "wide", "SH012 Kaster maling rundt seg"),
+        (156, "cu_prints", "SH013 Innklipp: håndavtrykk på gulvet"),
+        (190, "wide", "SH014 Beundrer verket sitt"),
         (212, "medium", "SH020 Søster kommer"),
         (222, "cu_boy_ots", "SH021 CU Gutten ser henne (OTS)"),
         (228, "medium", "SH022 Spark, hodet ned i balja"),
-        (240, "cu_girl_laugh", "SH023 CU Søster ler av ham"),
+        (238, "cu_splash", "SH0225 CU Plask, hodet først i balja"),
+        (252, "cu_girl_laugh", "SH023 CU Søster ler av ham"),
         (272, "medium", "SH024 Han spretter opp"),
         (288, "cu_boy_front", "SH025 CU Gutten full av maling"),
         (306, "wide", "SH030 Han kaster tilbake"),
         (323, "cu_girl_hit", "SH031 CU Søster blir truffet, sint"),
-        (356, "wide", "SH032 Hun henter spann"),
+        (354, "cu_aha", "SH0315 CU Søster ser spannet: aha!"),
+        (364, "wide", "SH032 Hun henter spann"),
         (378, "cu_boy_front", "SH033 CU Gutten: uh-oh"),
         (390, "wide", "SH034 Jakt ut av bildet"),
         (452, "deep", "SH040 Jakt dypt i rommet"),
@@ -1129,8 +1164,12 @@ def build_cameras(coll):
         (618, "deep", "SH042 Piruett og dunk"),
         (660, "cu_tease", "SH043 CU Søster erter ham (OTS)"),
         (672, "end", "SH060 Jakt mot kamera, maling på linsa"),
+        (752, "cu_oops", "SH0605 CU Gutten: oi! fniser"),
+        (766, "end", "SH0607 Søster tørker linsa og smiler"),
         (904, "cu_hug", "SH061 CU Klem, fniser til hverandre"),
         (946, "end", "SH062 Varmt smil i kamera, mørkt, spot, de vinker"),
+        (1086, "cu_jump", "SH063 CU Hoppeklem"),
+        (1124, "end", "SH064 Klem i spotlyset, kamera trekker seg bak"),
     ]
     for f, cam_key, label in shots:
         m = scene.timeline_markers.new(label, frame=f)
@@ -1169,7 +1208,6 @@ def build_cameras(coll):
 
 # (fra, til) i opprinnelige frames. Alt innenfor fjernes, alt etter flyttes frem.
 CUTS = [
-    (82, 92),     # kortere "oppdager balja"
     (134, 148),   # tredje kast er tatt ut
     (172, 190),   # halvparten av malingen med hendene
     (199, 211),   # stolt hopp
