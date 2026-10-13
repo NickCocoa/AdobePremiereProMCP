@@ -30,7 +30,7 @@ from mathutils import Quaternion, Vector
 
 FPS = 24
 FRAME_START = 1
-FRAME_END = 984  # 41 sek
+FRAME_END = 1104  # 46 sek
 
 # Karakter-proporsjoner (meter): høy blokk som leses som en person
 CHAR_W = 0.7   # bredde (skulder til skulder)
@@ -860,7 +860,7 @@ def build_paint_fx(coll, pm, boy, girl, cam_end):
     lens_paint(cam_end, coll, [pm["Oransje"], pm["Rosa"], pm["Gul"], pm["Himmelblaa"]], 742, 768, 778)
 
     # Sakte innzoom på ansiktene mot slutten
-    for f, lens_mm in ((786, 24.0), (FRAME_END, 34.0)):
+    for f, lens_mm in ((786, 24.0), (990, 34.0), (FRAME_END, 27.0)):
         cam_end.data.lens = lens_mm
         cam_end.data.keyframe_insert("lens", frame=f)
 
@@ -883,6 +883,80 @@ def lens_paint(cam, coll, mat, f_hit, f_wipe0, f_wipe1):
         key(ob, f_hit + 2, loc=(x, -0.02, -0.199))
         key(ob, f_wipe0, loc=(x, -0.07 - 0.01 * i, -0.199))
         key(ob, f_wipe1, loc=(x + 0.65, -0.07 - 0.01 * i, -0.199))
+
+
+# --------------------------------------------------------------------------
+# Avslutning: mørkt rundt dem, spot ovenfra, kamera trekker seg bak, de vinker
+# --------------------------------------------------------------------------
+
+def build_finale(boy, girl, cam, coll, f_dark=990, f_wave=1012):
+    scene = bpy.context.scene
+    f_dark_done = f_dark + 18
+
+    # Studiolyset dimmes ned, verden blir nesten svart
+    for name in ("Lys_Key", "Lys_Fill", "Lys_Rim"):
+        ld = bpy.data.objects[name].data
+        full = ld.energy
+        ld.keyframe_insert("energy", frame=f_dark)
+        ld.energy = full * 0.02
+        ld.keyframe_insert("energy", frame=f_dark_done)
+        ld.energy = full
+    bg = scene.world.node_tree.nodes.get("Background") if scene.world.node_tree else None
+    if bg:
+        strength = bg.inputs["Strength"]
+        full = strength.default_value
+        strength.keyframe_insert("default_value", frame=f_dark)
+        strength.default_value = 0.0
+        strength.keyframe_insert("default_value", frame=f_dark_done)
+        strength.default_value = full
+
+    # Spot rett ovenfra på dem
+    ld = bpy.data.lights.new("Lys_Spot_Finale", "SPOT")
+    ld.spot_size = math.radians(32)
+    ld.spot_blend = 0.3
+    ld.color = (1.0, 0.95, 0.85)
+    spot = bpy.data.objects.new("Lys_Spot_Finale", ld)
+    coll.objects.link(spot)
+    spot.location = (0.06, -5.0, 6.5)                  # peker rett ned (-Z)
+    ld.energy = 0.0
+    ld.keyframe_insert("energy", frame=f_dark + 4)
+    ld.energy = 2500.0
+    ld.keyframe_insert("energy", frame=f_dark_done + 4)
+
+    # Kamera trekker seg rolig bakover og litt opp
+    target = (0.06, -5.0, 1.1)
+    cam.keyframe_insert("location", frame=f_dark)
+    cam.keyframe_insert("rotation_euler", frame=f_dark)
+    start_loc = cam.location.copy()
+    start_rot = cam.rotation_euler.copy()
+    cam.location = (0.0, -10.5, 2.4)
+    look_at(cam, target)
+    cam.keyframe_insert("location", frame=FRAME_END)
+    cam.keyframe_insert("rotation_euler", frame=FRAME_END)
+    cam.location, cam.rotation_euler = start_loc, start_rot
+
+    # Vinke-armer (enkle blokker i kroppsfarge) og vinking
+    for ob, side, base_ry in ((girl, -1, 5), (boy, 1, -5)):
+        bm = bmesh.new()
+        bmesh.ops.create_cube(bm, size=1.0)
+        bmesh.ops.scale(bm, vec=(0.12, 0.12, 0.5), verts=bm.verts)
+        bmesh.ops.translate(bm, vec=(0, 0, 0.25), verts=bm.verts)
+        arm = mesh_object(f"{ob.name}_Vinkearm", bm, coll, [ob.data.materials[0]])
+        bev = arm.modifiers.new("Bevel", "BEVEL")
+        bev.width, bev.segments = 0.03, 2
+        arm.parent = ob
+        arm.location = (side * (CHAR_W / 2 + 0.07), 0, 1.15)
+        pop(arm, f_wave - 4, overshoot=1.15)
+        for i, f in enumerate(range(f_wave, FRAME_END - 6, 6)):
+            a = side * (20 + (25 if i % 2 else -15))
+            arm.rotation_euler = (0, math.radians(a), 0)
+            arm.keyframe_insert("rotation_euler", frame=f)
+        # kroppen vugger litt med vinkingen
+        x, y = ob.location.x, ob.location.y
+        for i, f in enumerate(range(f_wave, FRAME_END - 6, 12)):
+            pose(ob, f, x, y, 0.08 if i % 2 else 0, 0, -12 * side, 1.04 if i % 2 else 0.98,
+                 ry=base_ry + (4 if i % 2 else -4) * side)
+        pose(ob, FRAME_END, x, y, 0, 0, -12 * side, 1.0, ry=base_ry)
 
 
 # --------------------------------------------------------------------------
@@ -936,7 +1010,7 @@ def build_cameras(coll):
         (660, "cu_tease", "SH043 CU Søster erter ham (OTS)"),
         (672, "end", "SH060 Jakt mot kamera, maling på linsa"),
         (904, "cu_hug", "SH061 CU Klem, fniser til hverandre"),
-        (946, "end", "SH062 Varmt smil i kamera"),
+        (946, "end", "SH062 Varmt smil i kamera, mørkt, spot, de vinker"),
     ]
     for f, cam_key, label in shots:
         m = scene.timeline_markers.new(label, frame=f)
@@ -956,6 +1030,8 @@ def build_cameras(coll):
         (910, "Uttrykk G+J: fniser, ser på hverandre"),
         (946, "Uttrykk G+J: ekstra klem, øynene igjen"),
         (966, "Uttrykk G+J: varmt smil i kamera, hold"),
+        (996, "Uttrykk G+J: ser opp på spotlyset, forundret"),
+        (1012, "Uttrykk G+J: vinker og smiler farvel"),
     ]
     for f, label in expressions:
         scene.timeline_markers.new(label, frame=f)
@@ -1043,6 +1119,7 @@ def main():
     cams = build_cameras(c_cam)
     build_paint_fx(c_fx, pm, boy, girl, cams["end"])
     build_knockables(c_props, c_fx, pm, metal)
+    build_finale(boy, girl, cams["end"], c_char)
     setup_render()
 
     args = parse_args()

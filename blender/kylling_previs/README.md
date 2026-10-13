@@ -39,7 +39,7 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 - Rekvisitter: trekasse, en stor regnbuebalje midt på gulvet (én kile i hver farge), et gult og et rosa malingsspann.
 - Malingen er i lyse, lekne farger: rosa, turkis, gul, lime, lilla, oransje og himmelblå. Hvert kast har sin egen farge, håndavtrykkene går i regnbuerekkefølge, og gutten blir dekket av flere farger når han dukkes i balja.
 
-## Handling (24 fps, 984 frames ≈ 41 sek)
+## Handling (24 fps, 1104 frames ≈ 46 sek)
 
 | Frames | Shot / kamera | Hva skjer |
 |--------|---------------|-----------|
@@ -47,7 +47,7 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 | 212–295 | SH020 `CAM_02_Medium` | Søster (hvit) løper inn fra høyre og sparker ham (f230). Han flyr i salto og havner med hodet ned i balja (f246). Han spreller, spretter opp full av maling og rister seg som en hund. |
 | 296–451 | SH030 `CAM_01_Wide` | Gutten kaster maling på henne (treff f326). Hun stamper, finner et spann ved trekassa og kaster, men bommer. Så kaster hun hele spannet etter ham og jager ham ut av bildet til venstre. |
 | 452–661 | SH040 `CAM_03_Dyp` | Hun kommer først inn igjen fra høyre, og han løper etter. De løper dypt inn i rommet og frem igjen, sklir i malingsdammen og glir på ryggen. De ligger og ler, spretter opp, tar en felles piruett og dunker borti hverandre. |
-| 662–984 | SH060 `CAM_04_Ende` | Søster erter ham og løper dypt inn i rommet og så rett mot kamera. Gutten øser maling fra balja og kaster. Hun dukker unna, og malingen treffer linsa (f742). Hun tørker av linsa (f768–778), puster lettet ut og smiler i kamera. Gutten kommer løpende inn og klemmer henne (f870), og begge smiler og ler inn i kamera mens kameraet zoomer sakte inn. Slutt. |
+| 662–1104 | SH060 `CAM_04_Ende` | Søster erter ham og løper dypt inn i rommet og så rett mot kamera. Gutten øser maling fra balja og kaster. Hun dukker unna, og malingen treffer linsa (f742). Hun tørker av linsa (f768–778), puster lettet ut og smiler i kamera. Gutten kommer løpende inn og klemmer henne (f870), og begge smiler og ler inn i kamera mens kameraet zoomer sakte inn. Så blir det mørkt rundt dem (f990–1008), og et spotlys ovenfra lyser dem opp. Kameraet trekker seg rolig bakover og litt opp mens de vinker farvel. Slutt. |
 
 ### Ting som veltes
 
@@ -62,6 +62,8 @@ Sju ting står plassert langs løpeveiene og veltes når figurene løper forbi. 
 | 512 | Søster dypt i rommet | Tårn av malingsbokser (rosa, blå, lime) raser og søler |
 | 689 | Gutten jager henne | Lime malingsboks velter og søler |
 | 709 | Søster løper mot kamera | Krakk velter |
+
+Avslutningen med mørke, spotlys, kameraet som trekker seg bak og vinkingen lages i `build_finale()`.
 
 Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatter()` sender en stabel flyvende.
 
@@ -87,7 +89,7 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 | 660 | `CAM_CU_06_Erting_OTS` | SH043 **CU** Søster erter ham, over skulderen hans |
 | 672 | `CAM_04_Ende` | SH060 Jakt mot kamera, maling på linsa, hun tørker og smiler, klem |
 | 904 | `CAM_CU_07_Klem` | SH061 **CU** Klem, de fniser |
-| 946 | `CAM_04_Ende` | SH062 Varmt smil i kamera, slutt |
+| 946 | `CAM_04_Ende` | SH062 Varmt smil i kamera. Det blir mørkt, et spotlys ovenfra lyser dem opp, kameraet trekker seg bak og de vinker. Slutt |
 
 Nærbildene er statiske kameraer (35–40 mm) som sikter mot hodehøyde. Over-skulder-bildene (OTS) har den andre figuren i forgrunnen, så relasjonen mellom dem er med i bildet.
 
