@@ -39,15 +39,15 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 - Rekvisitter: trekasse, en stor regnbuebalje midt på gulvet (én kile i hver farge), et gult og et rosa malingsspann.
 - Malingen er i lyse, lekne farger: rosa, turkis, gul, lime, lilla, oransje og himmelblå. Hvert kast har sin egen farge, håndavtrykkene går i regnbuerekkefølge, og gutten blir dekket av flere farger når han dukkes i balja.
 
-## Handling (24 fps, 1104 frames ≈ 46 sek)
+## Handling (24 fps, 1018 frames ≈ 42 sek)
 
 | Frames | Shot / kamera | Hva skjer |
 |--------|---------------|-----------|
-| 1–211 | SH010 `CAM_01_Wide` | Gutten (svart) løper inn fra venstre, gjør en piruett og finner malingsbalja. Han kaster maling rundt seg og maler på gulvet med hendene. Han rygger for å beundre verket sitt. |
-| 212–295 | SH020 `CAM_02_Medium` | Søster (hvit) løper inn fra høyre og sparker ham (f230). Han flyr i salto og havner med hodet ned i balja (f246). Han spreller, spretter opp full av maling og rister seg som en hund. |
-| 296–451 | SH030 `CAM_01_Wide` | Gutten kaster maling på henne (treff f326). Hun stamper, finner et spann ved trekassa og kaster, men bommer. Så kaster hun hele spannet etter ham og jager ham ut av bildet til venstre. |
-| 452–661 | SH040 `CAM_03_Dyp` | Hun kommer først inn igjen fra høyre, og han løper etter. De løper dypt inn i rommet og frem igjen, sklir i malingsdammen og glir på ryggen. De ligger og ler, spretter opp, tar en felles piruett og dunker borti hverandre. |
-| 662–1104 | SH060 `CAM_04_Ende` | Søster erter ham og løper dypt inn i rommet og så rett mot kamera. Gutten øser maling fra balja og kaster. Hun dukker unna, og malingen treffer linsa (f742). Hun tørker av linsa (f768–778), puster lettet ut og smiler i kamera. Gutten kommer løpende inn og klemmer henne (f870), og begge smiler og ler inn i kamera mens kameraet zoomer sakte inn. Så blir det mørkt rundt dem (f990–1008), og et spotlys ovenfra lyser dem opp. Kameraet trekker seg rolig bakover og litt opp mens de vinker farvel. Slutt. |
+| 1–157 | SH010 `CAM_01_Wide` | Gutten (svart) løper inn fra venstre, gjør en piruett og finner malingsbalja. Han kaster maling rundt seg to ganger og maler litt på gulvet med hendene. Han rygger for å beundre verket sitt. |
+| 158–241 | SH020 `CAM_02_Medium` | Søster (hvit) løper inn fra høyre og sparker ham (f176). Han flyr i salto og havner med hodet ned i balja (f192). Han spreller, spretter opp full av maling og rister seg som en hund. |
+| 242–397 | SH030 `CAM_01_Wide` | Gutten kaster maling på henne (treff f272). Hun stamper, finner et spann ved trekassa og kaster, men bommer. Så kaster hun hele spannet etter ham og jager ham ut av bildet til venstre. |
+| 398–607 | SH040 `CAM_03_Dyp` | Hun kommer først inn igjen fra høyre, og han løper etter. De løper dypt inn i rommet og frem igjen, sklir i malingsdammen og glir på ryggen. De ligger og ler, spretter opp, tar en felles piruett og dunker borti hverandre. |
+| 608–1018 | SH060 `CAM_04_Ende` | Søster erter ham og løper dypt inn i rommet og så rett mot kamera. Gutten øser maling fra balja og kaster. Hun dukker unna, og malingen treffer linsa (f688). Hun tørker av linsa (f714–724), puster lettet ut og smiler i kamera. Gutten kommer løpende inn og klemmer henne (f784), og begge smiler og ler inn i kamera mens kameraet zoomer sakte inn. Så blir det mørkt rundt dem (f904–922), og et spotlys ovenfra lyser dem opp. Kameraet trekker seg rolig bakover og litt opp mens de vinker farvel. Slutt. |
 
 ### Ting som veltes
 
@@ -56,12 +56,12 @@ Sju ting står plassert langs løpeveiene og veltes når figurene løper forbi. 
 | Frame | Hvem | Hva |
 |-------|------|-----|
 | 31 | Gutten løper inn | Gul malingsboks velter og søler |
-| 210 | Søster løper inn | Krakk velter |
-| 395 | Gutten flykter | Kjegle velter |
-| 405 | Gutten flykter | Eskestabel flyr |
-| 512 | Søster dypt i rommet | Tårn av malingsbokser (rosa, blå, lime) raser og søler |
-| 689 | Gutten jager henne | Lime malingsboks velter og søler |
-| 709 | Søster løper mot kamera | Krakk velter |
+| 157 | Søster løper inn | Krakk velter |
+| 341 | Gutten flykter | Kjegle velter |
+| 351 | Gutten flykter | Eskestabel flyr |
+| 458 | Søster dypt i rommet | Tårn av malingsbokser (rosa, blå, lime) raser og søler |
+| 635 | Gutten jager henne | Lime malingsboks velter og søler |
+| 655 | Søster løper mot kamera | Krakk velter |
 
 Avslutningen med mørke, spotlys, kameraet som trekker seg bak og vinkingen lages i `build_finale()`.
 
@@ -72,24 +72,26 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 | Frame | Kamera | Shot |
 |-------|--------|------|
 | 1 | `CAM_01_Wide` | SH010 Gutten leker og søler |
-| 212 | `CAM_02_Medium` | SH020 Søster kommer |
-| 222 | `CAM_CU_01_Gutt_OTS` | SH021 **CU** Gutten ser henne, over skulderen hennes |
-| 228 | `CAM_02_Medium` | SH022 Spark, hodet ned i balja |
-| 240 | `CAM_CU_02_Jente_Ler` | SH023 **CU** Søster ler av ham, med beina hans i forgrunnen |
-| 272 | `CAM_02_Medium` | SH024 Han spretter opp |
-| 288 | `CAM_CU_03_Gutt` | SH025 **CU** Gutten full av maling, rister seg |
-| 306 | `CAM_01_Wide` | SH030 Han kaster tilbake |
-| 323 | `CAM_CU_04_Jente_Treff` | SH031 **CU** Søster blir truffet og blir sint |
-| 356 | `CAM_01_Wide` | SH032 Hun henter spann |
-| 378 | `CAM_CU_03_Gutt` | SH033 **CU** Gutten: «uh-oh» |
-| 390 | `CAM_01_Wide` | SH034 Jakt ut av bildet |
-| 452 | `CAM_03_Dyp` | SH040 Jakt dypt i rommet, de sklir |
-| 594 | `CAM_CU_05_Liggende` | SH041 **CU** ovenfra: de ligger hode mot hode og ler sammen |
-| 618 | `CAM_03_Dyp` | SH042 Piruett og dunk |
-| 660 | `CAM_CU_06_Erting_OTS` | SH043 **CU** Søster erter ham, over skulderen hans |
-| 672 | `CAM_04_Ende` | SH060 Jakt mot kamera, maling på linsa, hun tørker og smiler, klem |
-| 904 | `CAM_CU_07_Klem` | SH061 **CU** Klem, de fniser |
-| 946 | `CAM_04_Ende` | SH062 Varmt smil i kamera. Det blir mørkt, et spotlys ovenfra lyser dem opp, kameraet trekker seg bak og de vinker. Slutt |
+| 158 | `CAM_02_Medium` | SH020 Søster kommer |
+| 168 | `CAM_CU_01_Gutt_OTS` | SH021 **CU** Gutten ser henne, over skulderen hennes |
+| 174 | `CAM_02_Medium` | SH022 Spark, hodet ned i balja |
+| 186 | `CAM_CU_02_Jente_Ler` | SH023 **CU** Søster ler av ham, med beina hans i forgrunnen |
+| 218 | `CAM_02_Medium` | SH024 Han spretter opp |
+| 234 | `CAM_CU_03_Gutt` | SH025 **CU** Gutten full av maling, rister seg |
+| 252 | `CAM_01_Wide` | SH030 Han kaster tilbake |
+| 269 | `CAM_CU_04_Jente_Treff` | SH031 **CU** Søster blir truffet og blir sint |
+| 302 | `CAM_01_Wide` | SH032 Hun henter spann |
+| 324 | `CAM_CU_03_Gutt` | SH033 **CU** Gutten: «uh-oh» |
+| 336 | `CAM_01_Wide` | SH034 Jakt ut av bildet |
+| 398 | `CAM_03_Dyp` | SH040 Jakt dypt i rommet |
+| 446 | `CAM_CU_08_Loep` | SH040b **CU** Søster raser forbi kameraet og river ned tårnet, han like etter |
+| 482 | `CAM_03_Dyp` | SH040c Jakt frem, de sklir |
+| 540 | `CAM_CU_05_Liggende` | SH041 **CU** ovenfra: de ligger hode mot hode og ler sammen |
+| 564 | `CAM_03_Dyp` | SH042 Piruett og dunk |
+| 606 | `CAM_CU_06_Erting_OTS` | SH043 **CU** Søster erter ham, over skulderen hans |
+| 618 | `CAM_04_Ende` | SH060 Jakt mot kamera, maling på linsa, hun tørker og smiler, klem |
+| 818 | `CAM_CU_07_Klem` | SH061 **CU** Klem, de fniser |
+| 860 | `CAM_04_Ende` | SH062 Varmt smil i kamera. Det blir mørkt, et spotlys ovenfra lyser dem opp, kameraet trekker seg bak og de vinker. Slutt |
 
 Nærbildene er statiske kameraer (35–40 mm) som sikter mot hodehøyde. Over-skulder-bildene (OTS) har den andre figuren i forgrunnen, så relasjonen mellom dem er med i bildet.
 
@@ -104,6 +106,7 @@ I tillegg ligger det markører som heter `Uttrykk …` (uten kamera). De angir h
   - `retning`: 90 = ser mot høyre, −90 = mot venstre, 0 = mot kamera.
   - `squash < 1` gir squash, `> 1` gir stretch.
   - `raw=True` bruker vinkelen udempet (salto, ligge på ryggen). `spin=True` gir hele piruetter.
+- **Tempo:** `CUTS` i skriptet er en liste over tidsbiter som klippes ut. Alt etter et klipp flyttes frem automatisk, så du kan stramme eller løsne tempoet uten å flytte hver keyframe for hånd. Frame-tallene i animasjonskoden er de opprinnelige tallene, før klippene.
 - **Maling:** `build_paint_fx()` styrer klatter, dammer, håndavtrykk, malingsdrakten og malingen på linsa.
 - **Farger:** konstantene øverst (`RED`, `BLACK`, `WHITE`) og malingsfargene i `PAINTS`. Hvilken farge hvert kast, hver dam og hver flekk har, settes i `build_paint_fx()`.
 - **Render:** EEVEE, 1920×1080 på 50 %, AgX, med stempel for shotnavn og kamera. For rask playblast bruker du *View → Viewport Render Animation*.

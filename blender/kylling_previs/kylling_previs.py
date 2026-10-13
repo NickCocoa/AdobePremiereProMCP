@@ -483,7 +483,7 @@ def animate_boy(b):
 
     # Kaster maling rundt seg: øs fra balja, snu, kast
     hand = lambda tgt: Vector(tgt) - Vector((-0.9, 0.4))
-    for ft, tgt in ((104, (-2.6, -1.4)), (122, (-0.5, -2.0)), (140, (-2.2, 1.8))):
+    for ft, tgt in ((104, (-2.6, -1.4)), (122, (-0.5, -2.0))):
         rz = heading(*hand(tgt))
         P(ft - 10, -0.9, 0.4, 0, 40, 90, 0.88)         # øser
         P(ft - 5, -0.9, 0.4, 0, -15, rz, 1.12)         # oppladning
@@ -796,7 +796,7 @@ def build_knockables(coll, fx_coll, pm, metal):
     knock_over(c, 31, (0.5, -0.85), 0.21)
     floor_puddle("Dam_Velt_Gul", fx_coll, pm["Gul"], (-4.2, -1.3), 38, size=0.4, grow=25)
     # Søster løper inn: velter en krakk
-    knock_over(stool("Velt_Krakk_1", (5.0, 0.25)), 210, (-0.5, -0.85), 0.2)
+    knock_over(stool("Velt_Krakk_1", (5.0, 0.25)), 211, (-0.5, -0.85), 0.2)
     # Gutten flykter: velter en kjegle og en eskestabel
     knock_over(cone("Velt_Kjegle", (-1.9, 0.15)), 395, (-0.1, -1.0), 0.15)
     scatter(box_stack("Velt_Esker", (-3.6, 0.5)), 405, (-0.5, -0.85), 0.35, seed=31)
@@ -816,8 +816,7 @@ def build_knockables(coll, fx_coll, pm, metal):
 def build_paint_fx(coll, pm, boy, girl, cam_end):
     rainbow = list(pm.values())
     # Gutten kaster maling rundt seg fra balja
-    for i, (ft, tgt, col) in enumerate(((104, (-2.6, -1.4), "Rosa"), (122, (-0.5, -2.0), "Gul"),
-                                       (140, (-2.2, 1.8), "Lime"))):
+    for i, (ft, tgt, col) in enumerate(((104, (-2.6, -1.4), "Rosa"), (122, (-0.5, -2.0), "Gul"))):
         paint = pm[col]
         d = (Vector(tgt) - Vector((-0.9, 0.4))).normalized()
         start = (-0.9 + d.x * 0.45, 0.4 + d.y * 0.45, 1.7)
@@ -988,6 +987,7 @@ def build_cameras(coll):
         "cu_lying": cam("CAM_CU_05_Liggende", (-1.0, -2.7, 2.6), (-1.0, -1.85, 0.3), 32),
         "cu_tease": cam("CAM_CU_06_Erting_OTS", (1.6, -3.6, 1.6), (-0.4, -2.9, 1.3), 34),
         "cu_hug": cam("CAM_CU_07_Klem", (0.6, -6.6, 1.55), (0.06, -5.0, 1.45), 35),
+        "cu_run": cam("CAM_CU_08_Loep", (-2.2, 4.2, 1.4), (0.5, 5.0, 1.2), 30),
     }
 
     scene = bpy.context.scene
@@ -1004,7 +1004,9 @@ def build_cameras(coll):
         (356, "wide", "SH032 Hun henter spann"),
         (378, "cu_boy_front", "SH033 CU Gutten: uh-oh"),
         (390, "wide", "SH034 Jakt ut av bildet"),
-        (452, "deep", "SH040 Jakt dypt i rommet, sklir"),
+        (452, "deep", "SH040 Jakt dypt i rommet"),
+        (500, "cu_run", "SH040b CU Søster raser forbi og river ned tårnet, han etter"),
+        (536, "deep", "SH040c Jakt frem, de sklir"),
         (594, "cu_lying", "SH041 CU Ligger og ler sammen"),
         (618, "deep", "SH042 Piruett og dunk"),
         (660, "cu_tease", "SH043 CU Søster erter ham (OTS)"),
@@ -1037,6 +1039,68 @@ def build_cameras(coll):
         scene.timeline_markers.new(label, frame=f)
     scene.camera = cams["wide"]
     return cams
+
+
+# --------------------------------------------------------------------------
+# Tempo: klipp ut tidsbiter og skyv alt etterpå bakover
+# --------------------------------------------------------------------------
+
+# (fra, til) i opprinnelige frames. Alt innenfor fjernes, alt etter flyttes frem.
+CUTS = [
+    (82, 92),     # kortere "oppdager balja"
+    (134, 148),   # tredje kast er tatt ut
+    (172, 190),   # halvparten av malingen med hendene
+    (199, 211),   # stolt hopp
+    (814, 832),   # søsters glade hopp etter linsa
+    (836, 850),   # venting før gutten kommer
+]
+
+
+def iter_fcurves():
+    ids = (list(bpy.data.objects) + list(bpy.data.cameras) + list(bpy.data.lights)
+           + list(bpy.data.materials) + list(bpy.data.worlds)
+           + [w.node_tree for w in bpy.data.worlds if w.node_tree])
+    seen = set()
+    for idb in ids:
+        ad = getattr(idb, "animation_data", None)
+        if not ad or not ad.action or ad.action.name in seen:
+            continue
+        act = ad.action
+        seen.add(act.name)
+        if getattr(act, "layers", None):               # Blender 4.4+ (slotted actions)
+            for layer in act.layers:
+                for strip in layer.strips:
+                    for bag in strip.channelbags:
+                        yield from bag.fcurves
+        else:
+            yield from act.fcurves
+
+
+def retime(f):
+    """Ny frame for en opprinnelig frame som ligger utenfor klippene."""
+    return f - sum(min(e, f) - s for s, e in CUTS if f > s)
+
+
+def apply_cuts():
+    inside = lambda f: any(s <= f < e for s, e in CUTS)
+    for fc in iter_fcurves():
+        pts = fc.keyframe_points
+        for i in reversed(range(len(pts))):
+            if inside(pts[i].co.x):
+                pts.remove(pts[i])
+        for kp in pts:
+            d = retime(kp.co.x) - kp.co.x
+            kp.co.x += d
+            kp.handle_left.x += d
+            kp.handle_right.x += d
+        fc.update()
+    scene = bpy.context.scene
+    for m in list(scene.timeline_markers):
+        if inside(m.frame):
+            scene.timeline_markers.remove(m)
+        else:
+            m.frame = int(retime(m.frame))
+    scene.frame_end = int(retime(FRAME_END))
 
 
 # --------------------------------------------------------------------------
@@ -1121,6 +1185,7 @@ def main():
     build_knockables(c_props, c_fx, pm, metal)
     build_finale(boy, girl, cams["end"], c_char)
     setup_render()
+    apply_cuts()
 
     args = parse_args()
     if "save" in args:
