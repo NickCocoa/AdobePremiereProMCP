@@ -34,32 +34,32 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 
 - Hvit cyclorama (gulvet bøyer seg opp i bakveggen), ingen synlig horisont.
 - Tre-punkts område-lys: varm key, kjølig fill, rim bakfra.
-- Rekvisitter fra referansene: trekasse, to malingsspann og brun maling som søles på gulvet.
+- Rekvisitter fra referansene: trekasse, en stor malingsbalje midt på gulvet, to malingsspann og brun maling som søles på gulvet.
 
-## Handling (24 fps, 288 frames ≈ 12 sek)
+## Handling (24 fps, 768 frames ≈ 32 sek)
 
 | Frames | Shot / kamera | Hva skjer |
 |--------|---------------|-----------|
-| 1–73 | SH010 `CAM_01_Wide` | Begge hopper inn nese mot nese. Gutten vrikker «nænænæ», lader opp og dytter jenta bakover. Han skryte-hopper. |
-| 74–107 | SH020 `CAM_02_Jente_OTS` | Gutten vrikker med rumpa mot kamera. Jenta henter spannet sitt, lader opp og kaster. |
-| 108–177 | SH030 `CAM_03_Gutt_OTS` | **Treff** på gutten (f116). Jenta jubler og slipper spannet. Gutten stamper sint, henter sitt spann og kaster (f180). |
-| 178–199 | SH040 `CAM_02_Jente_OTS` | **Treff** på jenta (f190). Gutten ler og slipper spannet. |
-| 200–257 | SH050 `CAM_01_Wide` | Malingskrig: begge øser maling fra gulvet og kaster samtidig. Klattene krysser hverandre og begge blir truffet (f228). De ler seg skakke. |
-| 258–288 | SH060 `CAM_04_Hero` | Begge hopper sammen og ender i sluttposen mot kamera, med malingsflekker på de røde forsidene. |
+| 1–211 | SH010 `CAM_01_Wide` | Gutten (svart) løper inn fra venstre, gjør en piruett og finner malingsbalja. Han kaster maling rundt seg og maler på gulvet med hendene. Han rygger for å beundre verket sitt. |
+| 212–295 | SH020 `CAM_02_Medium` | Søster (hvit) løper inn fra høyre og sparker ham (f230). Han flyr i salto og havner med hodet ned i balja (f246). Han spreller, spretter opp full av maling og rister seg som en hund. |
+| 296–451 | SH030 `CAM_01_Wide` | Gutten kaster maling på henne (treff f326). Hun stamper, finner et spann ved trekassa og kaster, men bommer. Så kaster hun hele spannet etter ham og jager ham ut av bildet til venstre. |
+| 452–661 | SH040 `CAM_03_Dyp` | Hun kommer først inn igjen fra høyre, og han løper etter. De løper dypt inn i rommet og frem igjen, sklir i malingsdammen og glir på ryggen. De ligger og ler, spretter opp, tar en felles piruett og dunker borti hverandre. |
+| 662–768 | SH060 `CAM_04_Ende` | Gutten finner et spann, går mot kamera og heller maling rett i linsa (f708). Søster tørker av linsa (f716–724) og smiler til kamera. Slutt. |
 
 Kamerabyttene ligger som markører på tidslinja, bundet til kameraene, så *Viewport Render Animation* og vanlig render klipper automatisk.
 
 ## Justere
 
-- **Timing:** `animate_boy()` og `animate_girl()` er lister med `P(frame, x, y, z, len_frem, retning, squash)`.
+- **Timing:** `animate_boy()` og `animate_girl()` er lister med `P(frame, x, y, z, len_frem, retning, squash)`. Løping lages med `run(figur, start, slutt, [(x, y), ...])` langs en rute.
   - `len_frem > 0` lener forsiden frem, `< 0` lener bakover.
   - `retning`: 90 = ser mot høyre, −90 = mot venstre, 0 = mot kamera.
   - `squash < 1` gir squash, `> 1` gir stretch.
-- **Malingskast:** `build_paint_fx()`. Her settes start, mål, frames og bue for hver klatt, og når flekkene dukker opp.
+  - `raw=True` bruker vinkelen udempet (salto, ligge på ryggen). `spin=True` gir hele piruetter.
+- **Maling:** `build_paint_fx()` styrer klatter, dammer, håndavtrykk, malingsdrakten og malingen på linsa.
 - **Farger:** konstantene øverst (`RED`, `BLACK`, `WHITE`, `PAINT` …).
 - **Render:** EEVEE, 1920×1080 på 50 %, AgX, med stempel for shotnavn og kamera. For rask playblast bruker du *View → Viewport Render Animation*.
 
 ## Til AI-look
 
 Render en shot med EEVEE eller viewport-render, og bruk de to referansebildene som stil-/karakter-referanse i AI-verktøyet.
-Gutten er den svarte kuben og jenta den hvite. Den røde forsiden og kubens retning viser hvor hodet og blikket skal peke.
+Gutten er den svarte blokken og jenta den hvite. Den røde forsiden og blokkens retning viser hvor hodet og blikket skal peke.
