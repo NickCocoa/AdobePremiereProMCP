@@ -30,7 +30,7 @@ from mathutils import Quaternion, Vector
 
 FPS = 24
 FRAME_START = 1
-FRAME_END = 1104  # 46 sek
+FRAME_END = 1164  # 48,5 sek før klipp (CUTS)
 
 # Karakter-proporsjoner (meter): høy blokk som leses som en person
 CHAR_W = 0.7   # bredde (skulder til skulder)
@@ -888,7 +888,7 @@ def lens_paint(cam, coll, mat, f_hit, f_wipe0, f_wipe1):
 # Avslutning: mørkt rundt dem, spot ovenfra, kamera trekker seg bak, de vinker
 # --------------------------------------------------------------------------
 
-def build_finale(boy, girl, cam, coll, f_dark=990, f_wave=1012):
+def build_finale(boy, girl, cam, coll, f_dark=990, f_wave=1012, f_hug=1088):
     scene = bpy.context.scene
     f_dark_done = f_dark + 18
 
@@ -945,17 +945,37 @@ def build_finale(boy, girl, cam, coll, f_dark=990, f_wave=1012):
         bev.width, bev.segments = 0.03, 2
         arm.parent = ob
         arm.location = (side * (CHAR_W / 2 + 0.07), 0, 1.15)
-        pop(arm, f_wave - 4, overshoot=1.15)
-        for i, f in enumerate(range(f_wave, FRAME_END - 6, 6)):
+        pop(arm, f_wave - 4, f_off=f_hug, overshoot=1.15)
+        for i, f in enumerate(range(f_wave, f_hug - 2, 6)):
             a = side * (20 + (25 if i % 2 else -15))
             arm.rotation_euler = (0, math.radians(a), 0)
             arm.keyframe_insert("rotation_euler", frame=f)
         # kroppen vugger litt med vinkingen
         x, y = ob.location.x, ob.location.y
-        for i, f in enumerate(range(f_wave, FRAME_END - 6, 12)):
+        for i, f in enumerate(range(f_wave, f_hug - 2, 12)):
             pose(ob, f, x, y, 0.08 if i % 2 else 0, 0, -12 * side, 1.04 if i % 2 else 0.98,
                  ry=base_ry + (4 if i % 2 else -4) * side)
-        pose(ob, FRAME_END, x, y, 0, 0, -12 * side, 1.0, ry=base_ry)
+        pose(ob, f_hug - 2, x, y, 0, 0, -12 * side, 1.0, ry=base_ry)
+
+    # Søster hopper opp og klemmer broren (hoppeklem), han tar imot og vakler
+    G = lambda *a, **k: pose(girl, *a, **k)
+    B = lambda *a, **k: pose(boy, *a, **k)
+    h = f_hug
+    G(h + 2, -0.45, -5.0, 0, -10, 45, 0.8, ry=0)          # snur seg mot ham, lader opp
+    G(h + 8, -0.15, -5.0, 0.75, 15, 70, 1.18, ry=15)      # HOPPER
+    G(h + 13, 0.02, -5.0, 0.4, 10, 70, 0.9, ry=22)        # lander i armene hans
+    G(h + 18, 0.05, -5.0, 0.32, 5, 65, 1.03, ry=20)
+    B(h + 6, 0.55, -5.0, 0, 0, -30, 1.05, ry=0)           # ser henne komme
+    B(h + 13, 0.68, -5.0, 0, -12, -60, 0.82, ry=-18)      # tar imot, vakler bakover
+    B(h + 18, 0.75, -5.0, 0, -6, -55, 0.95, ry=-22)
+    B(h + 26, 0.66, -5.0, 0, 0, -50, 1.04, ry=-12)        # finner balansen
+    G(h + 26, 0.0, -5.0, 0.3, 0, 60, 1.0, ry=16)
+    for i, f in enumerate(range(h + 34, FRAME_END - 6, 10)):   # klemmer og ler
+        sq = 0.95 if i % 2 == 0 else 1.03
+        G(f, 0.0, -5.0, 0.3 if i % 2 else 0.26, 0, 40, sq, ry=16 + (3 if i % 2 else 0))
+        B(f, 0.66, -5.0, 0, 0, -32, sq, ry=-12 - (3 if i % 2 else 0))
+    G(FRAME_END, 0.0, -5.0, 0.28, 0, 35, 1.0, ry=16)
+    B(FRAME_END, 0.66, -5.0, 0, 0, -28, 1.0, ry=-12)
 
 
 # --------------------------------------------------------------------------
@@ -1132,6 +1152,10 @@ def build_cameras(coll):
         (966, "Uttrykk G+J: varmt smil i kamera, hold"),
         (996, "Uttrykk G+J: ser opp på spotlyset, forundret"),
         (1012, "Uttrykk G+J: vinker og smiler farvel"),
+        (1088, "Uttrykk J: får en idé, glitrende øyne"),
+        (1096, "Uttrykk J: hopper, stor jubel"),
+        (1101, "Uttrykk G: overrasket, tar imot henne"),
+        (1114, "Uttrykk G+J: klemmer hardt, øynene igjen, ler"),
     ]
     for f, label in expressions:
         scene.timeline_markers.new(label, frame=f)
