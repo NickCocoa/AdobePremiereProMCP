@@ -27,6 +27,13 @@ FPS = 24
 FRAME_START = 1
 FRAME_END = 288  # 12 sek
 
+# Karakter-proporsjoner (meter): høy blokk som leses som en person
+CHAR_W = 0.7   # bredde (skulder til skulder)
+CHAR_D = 0.5   # dybde (forside til bakside)
+CHAR_H = 1.7   # høyde
+FRONT = CHAR_D / 2  # avstand fra senter til den røde forsiden
+LEAN = 0.7     # demper lening, høye blokker vipper mye i toppen
+
 # Farger (lineære RGB)
 RED = (0.80, 0.03, 0.03)
 BLACK = (0.02, 0.02, 0.02)
@@ -130,7 +137,7 @@ def pose(ob, f, x, y, z=0.0, rx=0.0, rz=0.0, sq=1.0):
     """Karakter-positur. rx>0 = len fremover, rx<0 = len bakover.
     sq = squash/stretch (z-skala), xy kompenseres for volum."""
     xy = 1.0 / math.sqrt(sq)
-    key(ob, f, loc=(x, y, z), rot=(rx, 0.0, rz), scale=(xy, xy, sq))
+    key(ob, f, loc=(x, y, z), rot=(rx * LEAN, 0.0, rz), scale=(xy, xy, sq))
 
 
 def pop(ob, f_on, full=(1, 1, 1), f_off=None, overshoot=1.25):
@@ -214,10 +221,12 @@ def build_lights(coll):
 # --------------------------------------------------------------------------
 
 def build_character(name, label, body_color, coll, label_coll):
-    """Kube 1x1x1 med origo nederst. Alle sider i kroppsfarge, forsiden (-Y) rød."""
+    """Blokk CHAR_W x CHAR_D x CHAR_H med origo nederst.
+    Alle sider i kroppsfarge, forsiden (-Y) rød."""
     bm = bmesh.new()
     bmesh.ops.create_cube(bm, size=1.0)
-    bmesh.ops.translate(bm, vec=(0, 0, 0.5), verts=bm.verts)
+    bmesh.ops.scale(bm, vec=(CHAR_W, CHAR_D, CHAR_H), verts=bm.verts)
+    bmesh.ops.translate(bm, vec=(0, 0, CHAR_H / 2), verts=bm.verts)
     bm.normal_update()
     for f in bm.faces:
         f.material_index = 1 if f.normal.y < -0.9 else 0
@@ -237,7 +246,7 @@ def build_character(name, label, body_color, coll, label_coll):
     txt = bpy.data.objects.new(f"{name}_Navn", cu)
     label_coll.objects.link(txt)
     txt.data.materials.append(material(f"M_{name}_Navn", (0.05, 0.05, 0.05)))
-    txt.location = (0, 0, 1.45)
+    txt.location = (0, 0, CHAR_H + 0.35)
     txt.rotation_euler = (math.radians(90), 0, 0)
     c = txt.constraints.new("COPY_LOCATION")
     c.target, c.use_offset = ob, True
@@ -292,11 +301,11 @@ def throw_blob(name, coll, mat, start, end, f0, f1, height=0.6, side=0.0):
     return ob
 
 
-def splat_on(target, name, coll, mat, f_hit, local_xz, size=(0.24, 0.2)):
+def splat_on(target, name, coll, mat, f_hit, local_xz, size=(0.22, 0.18)):
     """Flat malingsflekk på forsiden (lokal -Y) av en karakter."""
     ob = blob_mesh(name, coll, mat)
     ob.parent = target
-    ob.location = (local_xz[0], -0.5, local_xz[1])
+    ob.location = (local_xz[0], -FRONT, local_xz[1])
     pop(ob, f_hit, full=(size[0], 0.035, size[1]))
     return ob
 
@@ -345,13 +354,13 @@ def animate_boy(b):
     P(10, -1.6, 0, 0, 0, 90, 1.03)
     P(16, -1.6, 0, 0, -5, 90, 0.82)          # antisipasjon
     P(22, -1.1, 0, 0.45, 8, 90, 1.15)        # hopp frem
-    P(28, -0.65, 0, 0, 10, 90, 0.85)         # lander nese mot nese
-    P(32, -0.65, 0, 0, 6, 90, 1.0)
+    P(28, -0.4, 0, 0, 10, 90, 0.85)         # lander nese mot nese
+    P(32, -0.4, 0, 0, 6, 90, 1.0)
     for f, rz in ((35, 70), (38, 110), (41, 70), (44, 110), (47, 90)):
-        P(f, -0.65, 0, 0, 6, rz, 1.0)        # "nænænæ"-vrikk
-    P(50, -0.85, 0, 0, -12, 90, 0.9)         # oppladning til dytt
-    P(55, -0.42, 0, 0, 22, 90, 1.1)          # DYTT
-    P(60, -0.45, 0, 0, 15, 90, 1.0)
+        P(f, -0.4, 0, 0, 6, rz, 1.0)        # "nænænæ"-vrikk
+    P(50, -0.6, 0, 0, -12, 90, 0.9)         # oppladning til dytt
+    P(55, -0.2, 0, 0, 22, 90, 1.1)          # DYTT
+    P(60, -0.22, 0, 0, 15, 90, 1.0)
     P(66, -0.6, 0, 0, 0, 90, 0.85)
     P(72, -0.6, 0, 0.5, -10, 90, 1.2)        # skryte-hopp
     P(78, -0.6, 0, 0, 0, 90, 0.8)
@@ -389,10 +398,10 @@ def animate_boy(b):
         P(f, -1.35, 0, 0, rx, 90, sq)        # ler seg skakk
     P(258, -1.35, 0, 0, 0, 90, 0.8)
     P(264, -1.0, -0.3, 0.55, 0, 35, 1.15)    # hopp til sluttpose
-    P(270, -0.65, -0.6, 0, 0, 15, 0.82)
-    P(276, -0.65, -0.6, 0, 0, 15, 1.03)
-    P(282, -0.65, -0.6, 0, 0, 15, 1.0)
-    P(288, -0.65, -0.6, 0, 0, 15, 1.0)
+    P(270, -0.5, -0.6, 0, 0, 15, 0.82)
+    P(276, -0.5, -0.6, 0, 0, 15, 1.03)
+    P(282, -0.5, -0.6, 0, 0, 15, 1.0)
+    P(288, -0.5, -0.6, 0, 0, 15, 1.0)
 
 
 def animate_girl(g):
@@ -402,12 +411,12 @@ def animate_girl(g):
     P(12, 1.6, 0, 0, 0, -90, 1.03)
     P(18, 1.6, 0, 0, -5, -90, 0.82)
     P(24, 1.1, 0, 0.4, 8, -90, 1.15)
-    P(30, 0.65, 0, 0, 8, -90, 0.87)
-    P(34, 0.65, 0, 0, -8, -90, 1.0)          # irritert
-    P(40, 0.65, 0, 0, -4, -90, 1.02)
-    P(46, 0.65, 0, 0, -8, -90, 0.98)
-    P(53, 0.65, 0, 0, -2, -90, 1.0)
-    P(55, 0.68, 0, 0, -15, -90, 0.85)        # blir dyttet
+    P(30, 0.4, 0, 0, 8, -90, 0.87)
+    P(34, 0.4, 0, 0, -8, -90, 1.0)          # irritert
+    P(40, 0.4, 0, 0, -4, -90, 1.02)
+    P(46, 0.4, 0, 0, -8, -90, 0.98)
+    P(53, 0.4, 0, 0, -2, -90, 1.0)
+    P(55, 0.43, 0, 0, -15, -90, 0.85)        # blir dyttet
     P(60, 1.5, 0, 0.2, -28, -90, 1.1)
     P(66, 1.9, 0, 0, 8, -90, 0.8)
     P(72, 1.9, 0, 0, -3, -90, 1.05)
@@ -444,10 +453,10 @@ def animate_girl(g):
         P(f, 2.35, 0, 0, rx, -90, sq)
     P(258, 2.35, 0, 0, 0, -90, 0.8)
     P(264, 1.5, -0.3, 0.55, 0, -35, 1.15)
-    P(270, 0.65, -0.6, 0, 0, -15, 0.82)
-    P(276, 0.65, -0.6, 0, 0, -15, 1.03)
-    P(282, 0.65, -0.6, 0, 0, -15, 1.0)
-    P(288, 0.65, -0.6, 0, 0, -15, 1.0)
+    P(270, 0.5, -0.6, 0, 0, -15, 0.82)
+    P(276, 0.5, -0.6, 0, 0, -15, 1.03)
+    P(282, 0.5, -0.6, 0, 0, -15, 1.0)
+    P(288, 0.5, -0.6, 0, 0, -15, 1.0)
 
 
 def animate_buckets(bucket_g, bucket_b):
@@ -455,13 +464,13 @@ def animate_buckets(bucket_g, bucket_b):
     # Jentas spann: står på gulvet, plukkes opp, kastes, slippes på siden
     K(bucket_g, 1, loc=(2.55, -0.85, 0), rot=(0, 0, 0))
     K(bucket_g, 84, loc=(2.55, -0.85, 0), rot=(0, 0, 0))
-    K(bucket_g, 90, loc=(2.22, -0.51, 0.45), rot=(0, 0, 0))
-    K(bucket_g, 96, loc=(1.3, 0, 0.55), rot=(0, 0, 0))
-    K(bucket_g, 102, loc=(2.15, 0, 1.45), rot=(0, 35, 0))
-    K(bucket_g, 106, loc=(1.3, 0, 1.1), rot=(0, -75, 0))
-    K(bucket_g, 112, loc=(1.35, 0, 0.7), rot=(0, -110, 0))
-    K(bucket_g, 124, loc=(1.35, 0, 1.2), rot=(0, -100, 0))
-    K(bucket_g, 127, loc=(2.0, -0.4, 0.9), rot=(40, -40, 0))
+    K(bucket_g, 90, loc=(2.14, -0.38, 0.85), rot=(0, 0, 0))
+    K(bucket_g, 96, loc=(1.45, 0, 0.95), rot=(0, 0, 0))
+    K(bucket_g, 102, loc=(2.2, 0, 2.2), rot=(0, 35, 0))
+    K(bucket_g, 106, loc=(1.4, 0, 1.75), rot=(0, -75, 0))
+    K(bucket_g, 112, loc=(1.45, 0, 1.0), rot=(0, -110, 0))
+    K(bucket_g, 124, loc=(1.45, 0, 1.6), rot=(0, -100, 0))
+    K(bucket_g, 127, loc=(2.0, -0.4, 1.2), rot=(40, -40, 0))
     K(bucket_g, 131, loc=(2.5, -0.75, 0.23), rot=(90, 0, 25))
     K(bucket_g, 134, loc=(2.52, -0.77, 0.3), rot=(85, 0, 28))
     K(bucket_g, 137, loc=(2.53, -0.78, 0.23), rot=(90, 0, 30))
@@ -469,13 +478,13 @@ def animate_buckets(bucket_g, bucket_b):
     # Guttens spann
     K(bucket_b, 1, loc=(-2.55, -0.85, 0), rot=(0, 0, 0))
     K(bucket_b, 160, loc=(-2.55, -0.85, 0), rot=(0, 0, 0))
-    K(bucket_b, 164, loc=(-2.45, -0.78, 0.45), rot=(0, 0, 0))
-    K(bucket_b, 168, loc=(-1.39, -0.83, 0.8), rot=(0, 0, 0))
-    K(bucket_b, 172, loc=(-0.5, 0, 0.55), rot=(0, 0, 0))
-    K(bucket_b, 176, loc=(-1.35, 0, 1.45), rot=(0, -35, 0))
-    K(bucket_b, 180, loc=(-0.45, 0, 1.1), rot=(0, 75, 0))
-    K(bucket_b, 186, loc=(-0.5, 0, 0.7), rot=(0, 110, 0))
-    K(bucket_b, 192, loc=(-0.9, -0.3, 0.9), rot=(40, 40, 0))
+    K(bucket_b, 164, loc=(-2.39, -0.73, 0.85), rot=(0, 0, 0))
+    K(bucket_b, 168, loc=(-1.43, -0.68, 1.2), rot=(0, 0, 0))
+    K(bucket_b, 172, loc=(-0.65, 0, 0.95), rot=(0, 0, 0))
+    K(bucket_b, 176, loc=(-1.4, 0, 2.2), rot=(0, -35, 0))
+    K(bucket_b, 180, loc=(-0.55, 0, 1.75), rot=(0, 75, 0))
+    K(bucket_b, 186, loc=(-0.55, 0, 1.0), rot=(0, 110, 0))
+    K(bucket_b, 192, loc=(-0.9, -0.3, 1.2), rot=(40, 40, 0))
     K(bucket_b, 197, loc=(-1.55, -0.85, 0.23), rot=(90, 0, -25))
     K(bucket_b, 200, loc=(-1.56, -0.86, 0.3), rot=(85, 0, -28))
     K(bucket_b, 203, loc=(-1.57, -0.87, 0.23), rot=(90, 0, -30))
@@ -483,26 +492,26 @@ def animate_buckets(bucket_g, bucket_b):
 
 def build_paint_fx(coll, paint, boy, girl):
     # Treff 1: Jenta kaster på gutten
-    throw_blob("Klatt_A_JenteTilGutt", coll, paint, (1.3, 0, 1.15), (-0.08, 0, 0.6), 106, 116)
-    splat_on(boy, "Flekk_Gutt_1", coll, paint, 116, (0.0, 0.55))
-    splash("Sprut_A", coll, paint, (-0.1, -0.1, 0.6), 116, toward_x=1, seed=1)
-    floor_puddle("Dam_A", coll, paint, (-0.2, -0.65), 118, size=0.3)
+    throw_blob("Klatt_A_JenteTilGutt", coll, paint, (1.4, 0, 1.8), (-0.33, 0, 1.1), 106, 116)
+    splat_on(boy, "Flekk_Gutt_1", coll, paint, 116, (0.0, 1.1))
+    splash("Sprut_A", coll, paint, (-0.35, -0.1, 1.1), 116, toward_x=1, seed=1)
+    floor_puddle("Dam_A", coll, paint, (-0.45, -0.6), 118, size=0.3)
 
     # Treff 2: Gutten kaster på jenta
-    throw_blob("Klatt_B_GuttTilJente", coll, paint, (-0.45, 0, 1.15), (1.38, 0, 0.6), 180, 190)
-    splat_on(girl, "Flekk_Jente_1", coll, paint, 190, (0.0, 0.55))
-    splash("Sprut_B", coll, paint, (1.4, -0.1, 0.6), 190, toward_x=-1, seed=2)
-    floor_puddle("Dam_B", coll, paint, (1.5, -0.65), 192, size=0.3)
+    throw_blob("Klatt_B_GuttTilJente", coll, paint, (-0.55, 0, 1.8), (1.63, 0, 1.1), 180, 190)
+    splat_on(girl, "Flekk_Jente_1", coll, paint, 190, (0.0, 1.1))
+    splash("Sprut_B", coll, paint, (1.65, -0.1, 1.1), 190, toward_x=-1, seed=2)
+    floor_puddle("Dam_B", coll, paint, (1.75, -0.6), 192, size=0.3)
 
     # Malingskrig: begge kaster samtidig, klattene krysser hverandre
-    throw_blob("Klatt_C_GuttTilJente", coll, paint, (-0.45, 0, 1.15), (1.43, 0, 0.85),
+    throw_blob("Klatt_C_GuttTilJente", coll, paint, (-0.7, 0, 1.9), (1.68, 0, 1.4),
                216, 228, height=0.5, side=0.25)
-    throw_blob("Klatt_D_JenteTilGutt", coll, paint, (1.45, 0, 1.15), (-0.43, 0, 0.85),
+    throw_blob("Klatt_D_JenteTilGutt", coll, paint, (1.7, 0, 1.9), (-0.68, 0, 1.4),
                216, 228, height=0.5, side=-0.25)
-    splat_on(girl, "Flekk_Jente_2", coll, paint, 228, (0.2, 0.82), size=(0.17, 0.15))
-    splat_on(boy, "Flekk_Gutt_2", coll, paint, 228, (-0.2, 0.82), size=(0.17, 0.15))
-    splash("Sprut_C", coll, paint, (1.45, -0.1, 0.85), 228, toward_x=-1, seed=3)
-    splash("Sprut_D", coll, paint, (-0.45, -0.1, 0.85), 228, toward_x=1, seed=4)
+    splat_on(girl, "Flekk_Jente_2", coll, paint, 228, (0.15, 1.4), size=(0.15, 0.13))
+    splat_on(boy, "Flekk_Gutt_2", coll, paint, 228, (-0.15, 1.4), size=(0.15, 0.13))
+    splash("Sprut_C", coll, paint, (1.7, -0.1, 1.4), 228, toward_x=-1, seed=3)
+    splash("Sprut_D", coll, paint, (-0.7, -0.1, 1.4), 228, toward_x=1, seed=4)
 
     # Søl fra spannene som slippes (som på referansebildene)
     floor_puddle("Dam_Spann_Jente", coll, paint, (2.5, -1.3), 133, size=0.55, grow=30)
@@ -525,10 +534,10 @@ def build_cameras(coll):
         return ob
 
     cams = {
-        "wide": cam("CAM_01_Wide", (0, -8.5, 2.0), (0.2, 0, 0.7), 32),
-        "girl": cam("CAM_02_Jente_OTS", (-2.3, -3.2, 1.3), (1.9, 0, 0.75), 42),
-        "boy": cam("CAM_03_Gutt_OTS", (2.8, -3.4, 1.3), (-1.2, -0.2, 0.7), 40),
-        "hero": cam("CAM_04_Hero", (0, -6.2, 1.1), (0, -0.6, 0.6), 38),
+        "wide": cam("CAM_01_Wide", (0, -9.5, 2.4), (0.2, 0, 1.0), 32),
+        "girl": cam("CAM_02_Jente_OTS", (-2.4, -3.6, 1.8), (1.9, 0, 1.1), 40),
+        "boy": cam("CAM_03_Gutt_OTS", (3.0, -3.8, 1.8), (-1.2, -0.2, 1.0), 38),
+        "hero": cam("CAM_04_Hero", (0, -6.4, 1.5), (0, -0.6, 1.0), 38),
     }
 
     scene = bpy.context.scene

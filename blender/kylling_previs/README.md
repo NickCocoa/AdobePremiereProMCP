@@ -21,12 +21,12 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 
 ## Karakterene
 
-| Kube | Karakter | Kropp | Forside |
+| Blokk | Karakter | Kropp | Forside |
 |------|----------|-------|---------|
 | `Gutt` | Gul kylling i oransje snekkerbukse | svart | rød |
 | `Jente` | Gul kylling i korall kjole med sløyfe | hvit | rød |
 
-- Kube på 1×1×1 m, origo i bunnen, så squash/stretch skjer fra gulvet.
+- Høy blokk på 0,7 × 0,5 × 1,7 m (bredde × dybde × høyde), så den leses som en person. Origo er i bunnen, så squash/stretch skjer fra gulvet. Mål endres i `CHAR_W`, `CHAR_D` og `CHAR_H` øverst i skriptet.
 - Forsiden (lokal −Y) er rød, så du alltid ser hvilken vei de ser.
 - Navneskilt over hodet vises bare i viewport, ikke i render.
 
