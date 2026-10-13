@@ -1,0 +1,11 @@
+# Blender-genererte sikkerhetskopier og Python-bytecode.
+# Repoets .gitignore dekker bare python-intelligence/, sa dette ma staa her.
+__pycache__/
+*.pyc
+*.blend1
+*.blend2
+
+# Renderutdata. Kontaktark og utvalgte stills committes bevisst;
+# frameserier gjor det ikke.
+previs/frames/
+previs/out/
