@@ -1,5 +1,8 @@
 version: v2
-clean: true
+# Must stay false: gen/go holds a committed go.mod and go.sum (the module the
+# orchestrator resolves via its replace directive). clean:true deletes the
+# whole output directory, taking those with it and breaking the Go build.
+clean: false
 
 managed:
   enabled: true

@@ -62,6 +62,14 @@ if not exist "ts-bridge\node_modules" (
 )
 
 REM Ensure MCP server binary
+if not exist "gen\go\premierpro\common\v1\common.pb.go" (
+    echo   Generating protobuf stubs...
+    buf generate proto/definitions
+    if errorlevel 1 (
+        echo   ERROR: buf generate failed. Install buf from https://buf.build/docs/installation
+        exit /b 1
+    )
+)
 if not exist "go-orchestrator\bin\premierpro-mcp.exe" (
     echo   Building MCP server...
     cd go-orchestrator && go build -o bin\premierpro-mcp.exe .\cmd\server\ && cd ..

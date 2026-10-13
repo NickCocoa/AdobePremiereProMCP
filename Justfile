@@ -16,9 +16,14 @@ proto-lint:
 
 # ─── Go Orchestrator ───
 
+# Generate protobuf stubs only if the Go ones are missing
+proto-ensure:
+    @ls gen/go/premierpro/*/v1/*.pb.go >/dev/null 2>&1 || just proto
+
 # Build the Go orchestrator
-go-build:
-    cd go-orchestrator && go build -o bin/server ./cmd/server
+# Output name must match .mcp.json, the launchers, the Dockerfile and the CLI.
+go-build: proto-ensure
+    cd go-orchestrator && go build -o bin/premierpro-mcp ./cmd/server
 
 # Run the Go orchestrator
 go-run:

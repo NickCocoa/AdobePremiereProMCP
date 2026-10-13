@@ -70,6 +70,16 @@ fi
 
 # Ensure MCP server binary exists
 if [ ! -f "go-orchestrator/bin/premierpro-mcp" ]; then
+    # The generated Go protobuf stubs are gitignored (**/*.pb.go), so a fresh
+    # clone has none and the Go build fails on the missing gen/go packages.
+    if ! ls gen/go/premierpro/*/v1/*.pb.go >/dev/null 2>&1; then
+        echo "  Generating protobuf stubs..."
+        buf generate proto/definitions || {
+            echo "  ERROR: buf generate failed. Install buf (https://buf.build/docs/installation)" >&2
+            echo "         and make sure you can reach buf.build for the remote plugins." >&2
+            exit 1
+        }
+    fi
     echo "  Building MCP server..."
     cd go-orchestrator && go build -o bin/premierpro-mcp ./cmd/server/ && cd ..
 fi
