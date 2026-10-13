@@ -26,7 +26,7 @@ from contextlib import contextmanager
 
 import bmesh
 import bpy
-from mathutils import Vector
+from mathutils import Quaternion, Vector
 
 FPS = 24
 FRAME_START = 1
@@ -531,8 +531,8 @@ def animate_boy(b):
         P(f, -0.8, 0.4, 0, -12 if i % 2 == 0 else 2, 90, 1.1 if i % 2 == 0 else 0.92)
     P(372, -0.8, 0.4, 0, 0, 90, 1.0)
     P(384, -0.8, 0.4, 0, -10, 90, 1.18)                # ser spannet: uh-oh
-    run(b, 388, 436, [(-0.8, 0.4), (-3.0, -0.3), (-8.5, -0.6)])  # flykter ut
-    teleport(b, 437, 470, (-8.5, -0.6, 0))
+    run(b, 388, 436, [(-0.8, 0.4), (-3.0, 0.5), (-8.5, 0.9)])  # flykter ut
+    teleport(b, 437, 470, (-8.5, 0.9, 0))
 
     # SH040: Kommer inn igjen fra høyre og jager henne dypt i rommet og frem
     P(470, 8.5, 0.5, 0, 0, -90)
@@ -612,8 +612,8 @@ def animate_girl(g):
     P(386, 2.95, 0.95, 0, 25, -90, 0.92)               # KAST (bommer)
     P(392, 2.95, 0.95, 0, 5, -90, 1.0)
     P(396, 2.95, 0.95, 0, 35, -90, 0.9)                # kaster hele spannet
-    run(g, 400, 448, [(2.95, 0.95), (1.2, -0.4), (-3.0, -0.6), (-8.5, -0.7)])
-    teleport(g, 449, 456, (-8.5, -0.7, 0))
+    run(g, 400, 448, [(2.95, 0.95), (1.5, 1.6), (-0.3, 1.9), (-3.0, 0.9), (-8.5, 0.9)])
+    teleport(g, 449, 456, (-8.5, 0.9, 0))
 
     # SH040: Kommer først inn fra høyre, løper dypt i rommet og frem
     P(456, 8.5, 0.5, 0, 0, -90)
@@ -696,6 +696,121 @@ def animate_props(tub, bucket_g, bucket_b):
 
     # Guttens spann foran til høyre
     K(bucket_b, 1, loc=(1.7, -2.7, 0), rot=(0, 0, 0))
+
+
+# --------------------------------------------------------------------------
+# Ting som veltes når de løper forbi
+# --------------------------------------------------------------------------
+
+def key_rot(ob, f, loc, rot):
+    ob.location = loc
+    ob.rotation_euler = rot
+    ob.keyframe_insert("location", frame=f)
+    ob.keyframe_insert("rotation_euler", frame=f)
+
+
+def knock_over(ob, f_hit, d, lie_z, slide=0.3):
+    """Velter en stående ting (origo i bunnen) i retning d."""
+    d = Vector((d[0], d[1], 0)).normalized()
+    axis = Vector((-d.y, d.x, 0))
+    base = Vector(ob.location)
+    up = Vector((0, 0, 1))
+    key_rot(ob, FRAME_START, base, (0, 0, 0))
+    key_rot(ob, f_hit, base, (0, 0, 0))
+    key_rot(ob, f_hit + 3, base + d * 0.12 + up * 0.08, Quaternion(axis, math.radians(50)).to_euler())
+    lie = Quaternion(axis, math.radians(90)).to_euler()
+    key_rot(ob, f_hit + 7, base + d * slide + up * lie_z, lie)
+    key_rot(ob, f_hit + 10, base + d * (slide + 0.05) + up * (lie_z + 0.06), lie)
+    key_rot(ob, f_hit + 13, base + d * (slide + 0.07) + up * lie_z, lie)
+
+
+def scatter(objs, f_hit, d, size, seed=0):
+    """Sender en stabel med ting flyvende i retning d."""
+    rnd = random.Random(seed)
+    d = Vector((d[0], d[1], 0)).normalized()
+    side = Vector((-d.y, d.x, 0))
+    for i, ob in enumerate(objs):
+        base = Vector(ob.location)
+        end = base + d * (0.5 + 0.35 * i) + side * rnd.uniform(-0.35, 0.35)
+        end.z = size / 2
+        mid = base.lerp(end, 0.5)
+        mid.z = base.z + 0.45 + 0.15 * i
+        spin = (math.radians(90 * rnd.randint(1, 3)), math.radians(90 * rnd.randint(0, 2)),
+                math.radians(rnd.uniform(-60, 60)))
+        key_rot(ob, FRAME_START, base, (0, 0, 0))
+        key_rot(ob, f_hit + i, base, (0, 0, 0))
+        key_rot(ob, f_hit + 5 + i, mid, tuple(a * 0.5 for a in spin))
+        key_rot(ob, f_hit + 10 + i, end, spin)
+        key_rot(ob, f_hit + 13 + i, end + Vector((0, 0, 0.05)), spin)
+        key_rot(ob, f_hit + 15 + i, end, spin)
+
+
+def build_knockables(coll, fx_coll, pm, metal):
+    wood = bpy.data.materials.get("M_Tre")
+    card = material("M_Papp", (0.55, 0.36, 0.18), rough=0.8)
+    cone_mat = material("M_Kjegle", (1.0, 0.25, 0.02), rough=0.5)
+
+    def can(name, xy, color):
+        ob = build_bucket(name, coll, pm[color], metal)
+        ob.location = (*xy, 0)
+        return ob
+
+    def stool(name, xy):
+        bm = bmesh.new()
+        bmesh.ops.create_cone(bm, cap_ends=True, segments=20, radius1=0.2, radius2=0.2, depth=0.45)
+        bmesh.ops.translate(bm, vec=(0, 0, 0.225), verts=bm.verts)
+        ob = mesh_object(name, bm, coll, [wood])
+        ob.location = (*xy, 0)
+        return ob
+
+    def cone(name, xy):
+        bm = bmesh.new()
+        bmesh.ops.create_cone(bm, cap_ends=True, segments=20, radius1=0.17, radius2=0.03, depth=0.5)
+        bmesh.ops.translate(bm, vec=(0, 0, 0.25), verts=bm.verts)
+        ob = mesh_object(name, bm, coll, [cone_mat])
+        smooth(ob)
+        ob.location = (*xy, 0)
+        return ob
+
+    def box_stack(name, xy, n=3, size=0.35):
+        out = []
+        for i in range(n):
+            bm = bmesh.new()
+            bmesh.ops.create_cube(bm, size=size)
+            ob = mesh_object(f"{name}_{i}", bm, coll, [card])
+            ob.location = (*xy, size / 2 + i * size)
+            out.append(ob)
+        return out
+
+    def can_stack(name, xy, colors):
+        out = []
+        for i, c in enumerate(colors):
+            ob = build_bucket(f"{name}_{i}", coll, pm[c], metal)
+            ob.location = (*xy, i * 0.36)
+            out.append(ob)
+        return out
+
+    # (ting, frame den treffes, retning den faller, hvem)
+    # Gutten løper inn: velter en gul malingsboks
+    c = can("Velt_Boks_Gul", (-4.5, -0.75), "Gul")
+    knock_over(c, 31, (0.5, -0.85), 0.21)
+    floor_puddle("Dam_Velt_Gul", fx_coll, pm["Gul"], (-4.2, -1.3), 38, size=0.4, grow=25)
+    # Søster løper inn: velter en krakk
+    knock_over(stool("Velt_Krakk_1", (5.0, 0.25)), 210, (-0.5, -0.85), 0.2)
+    # Gutten flykter: velter en kjegle og en eskestabel
+    knock_over(cone("Velt_Kjegle", (-1.9, 0.15)), 395, (-0.1, -1.0), 0.15)
+    scatter(box_stack("Velt_Esker", (-3.6, 0.5)), 405, (-0.5, -0.85), 0.35, seed=31)
+    # Søster løper dypt i rommet: river ned et tårn av malingsbokser
+    tower = can_stack("Velt_Boksetaarn", (-0.75, 5.3), ["Rosa", "Himmelblaa", "Lime"])
+    scatter(tower, 512, (-0.6, 0.8), 0.42, seed=32)
+    for i, col in enumerate(["Rosa", "Himmelblaa", "Lime"]):
+        floor_puddle(f"Dam_Taarn_{i}", fx_coll, pm[col], (-1.1 - 0.3 * i, 5.75 + 0.2 * i), 524 + i,
+                     size=0.35, grow=20)
+    # Siste jakt: gutten velter en lime boks, søster velter en krakk
+    c = can("Velt_Boks_Lime", (1.1, -1.95), "Lime")
+    knock_over(c, 689, (0.7, 0.7), 0.21)
+    floor_puddle("Dam_Velt_Lime", fx_coll, pm["Lime"], (1.45, -1.6), 696, size=0.4, grow=25)
+    knock_over(stool("Velt_Krakk_2", (-0.95, 1.0)), 709, (0.6, -0.8), 0.2)
 
 
 def build_paint_fx(coll, pm, boy, girl, cam_end):
@@ -927,6 +1042,7 @@ def main():
     animate_props(tub, bucket_g, bucket_b)
     cams = build_cameras(c_cam)
     build_paint_fx(c_fx, pm, boy, girl, cams["end"])
+    build_knockables(c_props, c_fx, pm, metal)
     setup_render()
 
     args = parse_args()

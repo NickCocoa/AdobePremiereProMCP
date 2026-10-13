@@ -49,6 +49,22 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 | 452–661 | SH040 `CAM_03_Dyp` | Hun kommer først inn igjen fra høyre, og han løper etter. De løper dypt inn i rommet og frem igjen, sklir i malingsdammen og glir på ryggen. De ligger og ler, spretter opp, tar en felles piruett og dunker borti hverandre. |
 | 662–984 | SH060 `CAM_04_Ende` | Søster erter ham og løper dypt inn i rommet og så rett mot kamera. Gutten øser maling fra balja og kaster. Hun dukker unna, og malingen treffer linsa (f742). Hun tørker av linsa (f768–778), puster lettet ut og smiler i kamera. Gutten kommer løpende inn og klemmer henne (f870), og begge smiler og ler inn i kamera mens kameraet zoomer sakte inn. Slutt. |
 
+### Ting som veltes
+
+Sju ting står plassert langs løpeveiene og veltes når figurene løper forbi. Malingsboksene søler maling på gulvet når de velter.
+
+| Frame | Hvem | Hva |
+|-------|------|-----|
+| 31 | Gutten løper inn | Gul malingsboks velter og søler |
+| 210 | Søster løper inn | Krakk velter |
+| 395 | Gutten flykter | Kjegle velter |
+| 405 | Gutten flykter | Eskestabel flyr |
+| 512 | Søster dypt i rommet | Tårn av malingsbokser (rosa, blå, lime) raser og søler |
+| 689 | Gutten jager henne | Lime malingsboks velter og søler |
+| 709 | Søster løper mot kamera | Krakk velter |
+
+Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatter()` sender en stabel flyvende.
+
 ### Shotliste med nærbilder
 
 | Frame | Kamera | Shot |
