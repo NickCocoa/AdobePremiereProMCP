@@ -48,6 +48,32 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 | 452–661 | SH040 `CAM_03_Dyp` | Hun kommer først inn igjen fra høyre, og han løper etter. De løper dypt inn i rommet og frem igjen, sklir i malingsdammen og glir på ryggen. De ligger og ler, spretter opp, tar en felles piruett og dunker borti hverandre. |
 | 662–984 | SH060 `CAM_04_Ende` | Søster erter ham og løper dypt inn i rommet og så rett mot kamera. Gutten øser maling fra balja og kaster. Hun dukker unna, og malingen treffer linsa (f742). Hun tørker av linsa (f768–778), puster lettet ut og smiler i kamera. Gutten kommer løpende inn og klemmer henne (f870), og begge smiler og ler inn i kamera mens kameraet zoomer sakte inn. Slutt. |
 
+### Shotliste med nærbilder
+
+| Frame | Kamera | Shot |
+|-------|--------|------|
+| 1 | `CAM_01_Wide` | SH010 Gutten leker og søler |
+| 212 | `CAM_02_Medium` | SH020 Søster kommer |
+| 222 | `CAM_CU_01_Gutt_OTS` | SH021 **CU** Gutten ser henne, over skulderen hennes |
+| 228 | `CAM_02_Medium` | SH022 Spark, hodet ned i balja |
+| 240 | `CAM_CU_02_Jente_Ler` | SH023 **CU** Søster ler av ham, med beina hans i forgrunnen |
+| 272 | `CAM_02_Medium` | SH024 Han spretter opp |
+| 288 | `CAM_CU_03_Gutt` | SH025 **CU** Gutten full av maling, rister seg |
+| 306 | `CAM_01_Wide` | SH030 Han kaster tilbake |
+| 323 | `CAM_CU_04_Jente_Treff` | SH031 **CU** Søster blir truffet og blir sint |
+| 356 | `CAM_01_Wide` | SH032 Hun henter spann |
+| 378 | `CAM_CU_03_Gutt` | SH033 **CU** Gutten: «uh-oh» |
+| 390 | `CAM_01_Wide` | SH034 Jakt ut av bildet |
+| 452 | `CAM_03_Dyp` | SH040 Jakt dypt i rommet, de sklir |
+| 594 | `CAM_CU_05_Liggende` | SH041 **CU** ovenfra: de ligger hode mot hode og ler sammen |
+| 618 | `CAM_03_Dyp` | SH042 Piruett og dunk |
+| 660 | `CAM_CU_06_Erting_OTS` | SH043 **CU** Søster erter ham, over skulderen hans |
+| 672 | `CAM_04_Ende` | SH060 Jakt mot kamera, maling på linsa, hun tørker og smiler, klem |
+| 904 | `CAM_CU_07_Klem` | SH061 **CU** Klem, de fniser |
+| 946 | `CAM_04_Ende` | SH062 Varmt smil i kamera, slutt |
+
+Nærbildene er statiske kameraer (35–40 mm) som sikter mot hodehøyde. Over-skulder-bildene (OTS) har den andre figuren i forgrunnen, så relasjonen mellom dem er med i bildet.
+
 Kamerabyttene ligger som markører på tidslinja, bundet til kameraene, så *Viewport Render Animation* og vanlig render klipper automatisk.
 
 I tillegg ligger det markører som heter `Uttrykk …` (uten kamera). De angir hvilket ansiktsuttrykk figurene skal ha i den ferdige versjonen, for eksempel «ertende», «skrekkslagen», «lettet», «stort smil», «klem, latter» og «varmt smil i kamera». Hvert uttrykk har 1–3 sekunder å virke på.

@@ -763,15 +763,37 @@ def build_cameras(coll):
         "medium": cam("CAM_02_Medium", (1.6, -5.0, 1.7), (0.6, 0.4, 1.1), 35),
         "deep": cam("CAM_03_Dyp", (0.5, -8.5, 1.2), (0, 1.5, 1.0), 30),
         "end": cam("CAM_04_Ende", (0, -7.5, 1.5), (0.3, -3.5, 1.25), 24),
+        # Nærbilder på relasjonen mellom dem (statiske, siktet mot hodehøyde)
+        "cu_boy_ots": cam("CAM_CU_01_Gutt_OTS", (3.3, -0.6, 1.75), (1.0, 0.35, 1.3), 38),
+        "cu_girl_laugh": cam("CAM_CU_02_Jente_Ler", (-0.9, -0.6, 1.75), (1.85, 0.35, 1.3), 40),
+        "cu_boy_front": cam("CAM_CU_03_Gutt", (0.6, -0.9, 1.5), (-0.9, 0.4, 1.3), 36),
+        "cu_girl_hit": cam("CAM_CU_04_Jente_Treff", (0.5, -1.0, 1.55), (2.1, 0.35, 1.3), 38),
+        "cu_lying": cam("CAM_CU_05_Liggende", (-1.0, -2.7, 2.6), (-1.0, -1.85, 0.3), 32),
+        "cu_tease": cam("CAM_CU_06_Erting_OTS", (1.6, -3.6, 1.6), (-0.4, -2.9, 1.3), 34),
+        "cu_hug": cam("CAM_CU_07_Klem", (0.6, -6.6, 1.55), (0.06, -5.0, 1.45), 35),
     }
 
     scene = bpy.context.scene
     shots = [
         (1, "wide", "SH010 Gutten leker og søler"),
-        (212, "medium", "SH020 Spark, hodet ned i balja"),
-        (296, "wide", "SH030 Malingskamp og jakt ut"),
-        (452, "deep", "SH040 Jakt dypt i rommet, sklir, moro"),
-        (662, "end", "SH060 Jakt mot kamera, maling på linsa, klem"),
+        (212, "medium", "SH020 Søster kommer"),
+        (222, "cu_boy_ots", "SH021 CU Gutten ser henne (OTS)"),
+        (228, "medium", "SH022 Spark, hodet ned i balja"),
+        (240, "cu_girl_laugh", "SH023 CU Søster ler av ham"),
+        (272, "medium", "SH024 Han spretter opp"),
+        (288, "cu_boy_front", "SH025 CU Gutten full av maling"),
+        (306, "wide", "SH030 Han kaster tilbake"),
+        (323, "cu_girl_hit", "SH031 CU Søster blir truffet, sint"),
+        (356, "wide", "SH032 Hun henter spann"),
+        (378, "cu_boy_front", "SH033 CU Gutten: uh-oh"),
+        (390, "wide", "SH034 Jakt ut av bildet"),
+        (452, "deep", "SH040 Jakt dypt i rommet, sklir"),
+        (594, "cu_lying", "SH041 CU Ligger og ler sammen"),
+        (618, "deep", "SH042 Piruett og dunk"),
+        (660, "cu_tease", "SH043 CU Søster erter ham (OTS)"),
+        (672, "end", "SH060 Jakt mot kamera, maling på linsa"),
+        (904, "cu_hug", "SH061 CU Klem, fniser til hverandre"),
+        (946, "end", "SH062 Varmt smil i kamera"),
     ]
     for f, cam_key, label in shots:
         m = scene.timeline_markers.new(label, frame=f)
