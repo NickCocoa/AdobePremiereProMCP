@@ -236,9 +236,9 @@ def build_lights(coll):
         look_at(ob, target)
         return ob
 
-    area("Lys_Key", (-4.5, -5.0, 6.0), (0, 0, 0.6), 700, 5.0, (1.0, 0.93, 0.84))
-    area("Lys_Fill", (5.5, -4.5, 3.0), (0, 0, 0.6), 220, 6.0, (0.86, 0.91, 1.0))
-    area("Lys_Rim", (2.0, 5.0, 5.0), (0, 0, 0.8), 450, 3.0, (1.0, 0.97, 0.92))
+    area("Lys_Key", (-4.5, -5.0, 6.0), (0, 0, 0.6), 750, 5.0, (1.0, 0.88, 0.74))
+    area("Lys_Fill", (5.5, -4.5, 3.0), (0, 0, 0.6), 200, 6.0, (0.80, 0.88, 1.0))
+    area("Lys_Rim", (2.0, 5.0, 5.0), (0, 0, 0.8), 800, 3.0, (1.0, 0.92, 0.80))
 
     world = bpy.data.worlds.new("Studio_World")
     bpy.context.scene.world = world
@@ -959,6 +959,104 @@ def build_finale(boy, girl, cam, coll, f_dark=990, f_wave=1012):
 
 
 # --------------------------------------------------------------------------
+# Pixar-kamera: myke panoreringer, sakte innkjøringer, dybdeskarphet
+# --------------------------------------------------------------------------
+
+def empty(name, coll, loc=(0, 0, 0), parent=None):
+    ob = bpy.data.objects.new(name, None)
+    coll.objects.link(ob)
+    ob.empty_display_size = 0.15
+    ob.parent = parent
+    ob.location = loc
+    return ob
+
+
+def copy_loc(ob, target, influence=1.0):
+    c = ob.constraints.new("COPY_LOCATION")
+    c.target = target
+    c.influence = influence
+    return c
+
+
+def key_influence(c, frames_values):
+    for f, v in frames_values:
+        c.influence = v
+        c.keyframe_insert("influence", frame=f)
+
+
+def aim(cam, target):
+    c = cam.constraints.new("TRACK_TO")
+    c.target = target
+    c.track_axis = "TRACK_NEGATIVE_Z"
+    c.up_axis = "UP_Y"
+    return c
+
+
+def dof(cam, focus, fstop):
+    d = cam.data.dof
+    d.use_dof = True
+    d.focus_object = focus
+    d.aperture_fstop = fstop
+
+
+def push(cam, windows):
+    """Sakte innkjøring mot motivet i hvert vindu (f0, f1, meter)."""
+    home = cam.location.copy()
+    fwd = cam.rotation_euler.to_matrix() @ Vector((0, 0, -1))
+    for f0, f1, dist in windows:
+        cam.location = home
+        cam.keyframe_insert("location", frame=f0)
+        cam.location = home + fwd * dist
+        cam.keyframe_insert("location", frame=f1)
+    cam.location = home
+
+
+def build_cinematic(cams, boy, girl, coll):
+    # Fokuspunkter i hodehøyde (følger hodet også i salto og når de ligger)
+    head_b = empty("Fokus_Gutt", coll, (0, 0, 1.45), boy)
+    head_g = empty("Fokus_Jente", coll, (0, 0, 1.45), girl)
+    mid = empty("Fokus_Midt", coll)
+    copy_loc(mid, head_b)
+    copy_loc(mid, head_g, 0.5)                         # midt mellom hodene
+
+    # Wide: panorerer mykt etter gutten, og etter begge når søster er med
+    aim_w = empty("Sikte_Wide", coll, (0.2, 0, 1.0))
+    key_influence(copy_loc(aim_w, head_b), [(1, 0.45)])
+    key_influence(copy_loc(aim_w, head_g), [(1, 0.0), (210, 0.0), (224, 0.33)])
+    aim(cams["wide"], aim_w)
+    dof(cams["wide"], mid, 5.6)
+    push(cams["wide"], [(1, 211, 0.9)])
+
+    # Medium og dyp: følger midtpunktet mellom dem, sakte innkjøring
+    for key_, base, inf, f in (("medium", (0.6, 0.4, 1.1), 0.7, 4.0), ("deep", (0, 1.5, 1.0), 0.5, 4.0)):
+        a = empty(f"Sikte_{key_}", coll, base)
+        copy_loc(a, mid, inf)
+        aim(cams[key_], a)
+        dof(cams[key_], mid, f)
+    push(cams["medium"], [(212, 228, 0.3), (228, 305, 0.6)])
+    push(cams["deep"], [(452, 500, 0.8), (536, 660, 1.2)])
+
+    # Nærbilder: følger hodet, grunn dybdeskarphet, liten innkjøring
+    cu = [
+        ("cu_boy_ots", head_b, [(222, 228, 0.15)]),
+        ("cu_girl_laugh", head_g, [(240, 272, 0.35)]),
+        ("cu_boy_front", head_b, [(288, 306, 0.3), (378, 390, 0.25)]),
+        ("cu_girl_hit", head_g, [(323, 356, 0.35)]),
+        ("cu_lying", mid, [(594, 618, 0.4)]),
+        ("cu_tease", head_g, [(660, 672, 0.2)]),
+        ("cu_hug", mid, [(904, 946, 0.4)]),
+        ("cu_run", mid, [(500, 536, 0.3)]),  # f/2.8 under, raske bevegelser
+    ]
+    for key_, target, windows in cu:
+        aim(cams[key_], target)
+        dof(cams[key_], target, 2.8 if key_ == "cu_run" else 2.0)
+        push(cams[key_], windows)
+
+    # Sluttkameraet har egne nøkler, bare fokus her
+    dof(cams["end"], mid, 4.0)
+
+
+# --------------------------------------------------------------------------
 # Kamera og shots
 # --------------------------------------------------------------------------
 
@@ -975,7 +1073,7 @@ def build_cameras(coll):
         return ob
 
     cams = {
-        "wide": cam("CAM_01_Wide", (0, -9.5, 2.4), (0.2, 0, 1.0), 32),
+        "wide": cam("CAM_01_Wide", (0, -9.0, 1.7), (0.2, 0, 1.0), 32),
         "medium": cam("CAM_02_Medium", (1.6, -5.0, 1.7), (0.6, 0.4, 1.1), 35),
         "deep": cam("CAM_03_Dyp", (0.5, -8.5, 1.2), (0, 1.5, 1.0), 30),
         "end": cam("CAM_04_Ende", (0, -7.5, 1.5), (0.3, -3.5, 1.25), 24),
@@ -1126,6 +1224,14 @@ def setup_render():
             break
         except TypeError:
             continue
+    try:
+        scene.view_settings.look = "AgX - Punchy"            # fyldigere, Pixar-aktige farger
+    except TypeError:
+        pass
+    scene.render.use_motion_blur = True
+    for attr, val in (("use_raytracing", True), ("use_gtao", True)):
+        if hasattr(scene.eevee, attr):
+            setattr(scene.eevee, attr, val)
     scene.render.filepath = "//render/kylling_previs_"
     scene.render.use_stamp = True
     scene.render.use_stamp_marker = True
@@ -1181,6 +1287,7 @@ def main():
     animate_girl(girl)
     animate_props(tub, bucket_g, bucket_b)
     cams = build_cameras(c_cam)
+    build_cinematic(cams, boy, girl, c_cam)
     build_paint_fx(c_fx, pm, boy, girl, cams["end"])
     build_knockables(c_props, c_fx, pm, metal)
     build_finale(boy, girl, cams["end"], c_char)

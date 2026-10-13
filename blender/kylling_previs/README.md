@@ -93,7 +93,18 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 | 818 | `CAM_CU_07_Klem` | SH061 **CU** Klem, de fniser |
 | 860 | `CAM_04_Ende` | SH062 Varmt smil i kamera. Det blir mørkt, et spotlys ovenfra lyser dem opp, kameraet trekker seg bak og de vinker. Slutt |
 
-Nærbildene er statiske kameraer (35–40 mm) som sikter mot hodehøyde. Over-skulder-bildene (OTS) har den andre figuren i forgrunnen, så relasjonen mellom dem er med i bildet.
+Over-skulder-bildene (OTS) har den andre figuren i forgrunnen, så relasjonen mellom dem er med i bildet.
+
+### Pixar-kamera og look
+
+Dette gjør `build_cinematic()`:
+- **Følger hodene:** alle kameraer unntatt sluttkameraet har *Track To* mot et fokuspunkt i hodehøyde, `Fokus_Gutt`, `Fokus_Jente` eller `Fokus_Midt` mellom dem. Bildet panorerer mykt etter figurene og følger hodet også i salto og når de ligger.
+- **Wide panorerer etter handlingen:** først etter gutten, og etter begge når søster kommer inn. Det står i øyehøyde (1,7 m) i stedet for ovenfra.
+- **Sakte innkjøringer:** hvert skudd skyver sakte innover, 0,15–1,2 m i løpet av skuddet.
+- **Dybdeskarphet:** nærbilder på f/2.0 og løpe-nærbildet på f/2.8. Medium, dyp og sluttkameraet bruker f/4, og wide f/5.6. Fokus følger alltid hodene.
+- **Bevegelsesuskarphet:** slått på for alle skudd.
+- **Fargelook:** AgX med *Punchy*, for fyldigere og mer mettede farger.
+- **Lys:** varmere key, kjøligere fill og sterkere varmt rimlys, så figurene skiller seg fra bakgrunnen.
 
 Kamerabyttene ligger som markører på tidslinja, bundet til kameraene, så *Viewport Render Animation* og vanlig render klipper automatisk.
 
