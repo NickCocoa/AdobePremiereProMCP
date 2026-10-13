@@ -5,6 +5,8 @@ De erter hverandre og kaster maling på hverandre.
 
 ![Kontaktark](contact_sheet.jpg)
 
+Preview-video i lav oppløsning (640×360, Cycles 4 samples): [`kylling_previs_preview.mp4`](kylling_previs_preview.mp4)
+
 ## Kjør
 
 **I Blender (4.2+ / 5.x):** Scripting-fanen → *Open* → `kylling_previs.py` → *Run Script*.
