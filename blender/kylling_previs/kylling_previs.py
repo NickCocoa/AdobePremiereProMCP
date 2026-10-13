@@ -30,7 +30,7 @@ from mathutils import Vector
 
 FPS = 24
 FRAME_START = 1
-FRAME_END = 768  # 32 sek
+FRAME_END = 984  # 41 sek
 
 # Karakter-proporsjoner (meter): høy blokk som leses som en person
 CHAR_W = 0.7   # bredde (skulder til skulder)
@@ -141,18 +141,19 @@ def key(ob, f, loc=None, rot=None, scale=None):
 _last_rz = {}
 
 
-def pose(ob, f, x, y, z=0.0, rx=0.0, rz=0.0, sq=1.0, raw=False, spin=False):
+def pose(ob, f, x, y, z=0.0, rx=0.0, rz=0.0, sq=1.0, raw=False, spin=False, ry=0.0):
     """Karakter-positur. rx>0 = len fremover, rx<0 = len bakover.
     rz = retning i grader (90 = mot +X, -90 = mot -X, 0 = mot kamera).
     sq = squash/stretch (z-skala), xy kompenseres for volum.
     raw: bruk rx uten demping (salto, ligge på ryggen).
-    spin: bruk rz som den er; ellers velges korteste vei fra forrige retning."""
+    spin: bruk rz som den er; ellers velges korteste vei fra forrige retning.
+    ry: vipp sidelengs (>0 = toppen mot +X når figuren ser mot kamera)."""
     if not spin and ob.name in _last_rz:
         prev = _last_rz[ob.name]
         rz = prev + (rz - prev + 180.0) % 360.0 - 180.0
     _last_rz[ob.name] = rz
     xy = 1.0 / math.sqrt(sq)
-    key(ob, f, loc=(x, y, z), rot=(rx if raw else rx * LEAN, 0.0, rz), scale=(xy, xy, sq))
+    key(ob, f, loc=(x, y, z), rot=(rx if raw else rx * LEAN, ry, rz), scale=(xy, xy, sq))
 
 
 def teleport(ob, f_out, f_in, loc_out):
@@ -384,10 +385,10 @@ def build_paint_coat(target, coll, mat, f_on):
     return ob
 
 
-def build_smile(target, coll, f_on):
+def build_smile(target, coll, f_on, prefix, depth=FRONT + 0.03):
     """Smil og øyne på forsiden, dukker opp i siste shot."""
-    white = material("M_Smil", (0.95, 0.95, 0.95), rough=0.3)
-    cu = bpy.data.curves.new("Jente_Smil", "CURVE")
+    white = bpy.data.materials.get("M_Smil") or material("M_Smil", (0.95, 0.95, 0.95), rough=0.3)
+    cu = bpy.data.curves.new(f"{prefix}_Smil", "CURVE")
     cu.dimensions = "3D"
     cu.bevel_depth = 0.025
     sp = cu.splines.new("POLY")
@@ -396,16 +397,16 @@ def build_smile(target, coll, f_on):
     for i, p in enumerate(sp.points):
         a = math.pi + 0.35 + i * (math.pi - 0.7) / (n - 1)
         p.co = (0.15 * math.cos(a), 0.0, 0.11 * math.sin(a), 1.0)
-    smile = bpy.data.objects.new("Jente_Smil", cu)
+    smile = bpy.data.objects.new(f"{prefix}_Smil", cu)
     coll.objects.link(smile)
     cu.materials.append(white)
     smile.parent = target
-    smile.location = (0, -FRONT - 0.03, 1.45)
+    smile.location = (0, -depth, 1.45)
     pop(smile, f_on)
     for side in (-1, 1):
-        eye = blob_mesh(f"Jente_Oye_{'V' if side < 0 else 'H'}", coll, white)
+        eye = blob_mesh(f"{prefix}_Oye_{'V' if side < 0 else 'H'}", coll, white)
         eye.parent = target
-        eye.location = (0.11 * side, -FRONT - 0.02, 1.6)
+        eye.location = (0.11 * side, -depth + 0.01, 1.6)
         pop(eye, f_on, full=(0.04, 0.02, 0.05))
 
 
@@ -530,21 +531,31 @@ def animate_boy(b):
     P(650, 0.5, -2.9, 0, 0, 350, 0.9)                  # side-dunk
     P(656, 0.6, -2.9, 0, 0, 360, 1.0)
 
-    # SH060: Finner spannet og heller maling i kamera
-    P(660, 0.6, -2.9, 0, 0, 460, 1.1)                  # ser spannet
-    P(664, 1.25, -2.8, 0.25, 10, 460, 1.0)
-    P(668, 1.25, -2.8, 0, 40, 460, 0.9)
-    P(672, 1.25, -2.8, 0, -5, 460, 1.05)
-    P(676, 1.25, -2.8, 0, 0, 360, 1.0)                 # mot kamera
-    run(b, 678, 694, [(1.25, -2.8), (0.3, -4.4)], lean=12)
-    P(698, 0.3, -4.4, 0, -22, 360, 1.15)               # løfter spannet
-    P(702, 0.3, -4.4, 0, 25, 360, 0.95)                # HELLER
-    P(708, 0.3, -4.4, 0, 10, 360, 1.0)
-    P(712, 0.3, -4.4, 0, 0, 360, 1.0)
-    P(720, 1.4, -3.4, 0, 0, 345, 1.0)                  # trekker seg unna, ler
-    for i, f in enumerate(range(724, 768, 5)):
-        P(f, 1.4, -3.4, 0, -12 if i % 2 == 0 else 2, 345, 1.1 if i % 2 == 0 else 0.92)
-    P(FRAME_END, 1.4, -3.4, 0, 0, 345, 1.0)
+    # SH060: Jager jenta, øser fra balja og kaster, hun dukker, maling i kamera
+    P(664, 0.6, -2.9, 0, -10, 380, 1.1)                # blir ertet
+    P(672, 0.6, -2.9, 0, 0, 340, 0.9)
+    run(b, 680, 712, [(0.6, -2.9), (1.6, -1.0), (0.95, 0.4)])
+    P(716, 0.95, 0.4, 0, 40, -90, 0.88)                # øser fra balja
+    P(722, 0.95, 0.4, 0, -5, -90, 1.05)
+    P(726, 0.95, 0.4, 0, -22, -7, 1.15)                # oppladning mot jenta/kamera
+    P(730, 0.95, 0.4, 0, 28, -7, 0.92)                 # KAST
+    P(736, 0.95, 0.4, 0, 8, -7, 1.0)
+    P(742, 0.95, 0.4, 0, 0, -7, 1.0)
+    teleport(b, 743, 850, (4.5, -4.6, 0))              # ut av bildet bak malingen
+
+    # Løper inn og klemmer søsteren, smiler i kamera
+    run(b, 850, 866, [(4.5, -4.6), (0.55, -5.0)], lean=18)
+    P(870, 0.53, -5.0, 0, 10, -60, 0.88, ry=-7)        # KLEM (dunker inn i henne)
+    P(876, 0.55, -5.0, 0, 0, -45, 1.04, ry=-5)
+    P(884, 0.55, -5.0, 0, 0, -45, 1.0, ry=-5)
+    P(892, 0.55, -5.0, 0, 0, -12, 1.0, ry=-5)          # ser i kamera
+    P(898, 0.55, -5.0, 0, 0, -12, 1.06, ry=-5)
+    for i, f in enumerate(range(906, 944, 8)):         # ler sammen
+        P(f, 0.55, -5.0, 0, -6 if i % 2 == 0 else 0, -12, 1.06 if i % 2 == 0 else 0.97, ry=-5)
+    P(946, 0.53, -5.0, 0, 0, -14, 0.93, ry=-7)         # ekstra klem
+    P(954, 0.55, -5.0, 0, 0, -12, 1.02, ry=-5)
+    P(966, 0.55, -5.0, 0, 0, -12, 1.0, ry=-5)          # varmt smil, hold
+    P(FRAME_END, 0.55, -5.0, 0, 0, -12, 1.01, ry=-5)
 
 
 def animate_girl(g):
@@ -601,20 +612,40 @@ def animate_girl(g):
     P(650, -0.2, -2.9, 0, 0, 370, 0.9)                 # side-dunk
     P(656, -0.5, -2.9, 0, 0, 360, 1.0)
 
-    # SH060: Ser på, gjemt bak malingen på linsa, tørker den av og smiler
-    P(664, -0.5, -2.9, 0, 0, 420, 1.0)
-    P(700, -0.5, -2.9, 0, -8, 400, 1.1)                # "nei, ikke gjør det!"
-    P(708, -0.5, -2.9, 0, 0, 400, 1.0)
-    P(714, -2.2, -6.1, 0, 0, 360, 1.0)                 # skjult bak malingen
-    P(716, -2.2, -6.1, 0, 0, 360, 1.0)
-    P(724, 0.0, -6.1, 0.05, 10, 360, 1.05)             # TØRKER linsa
-    P(728, 0.0, -5.6, 0, 0, 360, 1.0)
-    P(734, 0.0, -5.0, 0, 0, 360, 1.0)                  # smiler
-    P(738, 0.0, -5.0, 0, 0, 360, 0.85)
-    P(744, 0.0, -5.0, 0.3, -5, 360, 1.15)              # glad hopp
-    P(750, 0.0, -5.0, 0, 0, 360, 0.85)
-    P(756, 0.0, -5.0, 0, 0, 360, 1.03)
-    P(FRAME_END, 0.0, -5.0, 0, 0, 360, 1.0)
+    # SH060: Erter ham og løper; dypt i rommet og mot kamera, dukker unna
+    P(660, -0.5, -2.9, 0, 0, 400, 1.0)                 # snur seg mot ham
+    P(664, -0.4, -2.9, 0, 20, 400, 1.05)               # erter
+    P(668, -0.4, -2.9, 0, -10, 400, 1.12)
+    run(g, 672, 732, [(-0.5, -2.9), (-2.8, -2.2), (-2.2, 1.6), (-1.2, 2.2),
+                      (-0.8, -1.5), (-0.2, -4.3)])
+    P(735, -0.1, -4.7, 0.1, -10, 160, 1.1)             # ser seg tilbake
+    P(738, -0.05, -5.0, 0, 25, 30, 0.6)                # DUKKER
+    P(742, 0.0, -5.2, 0, 30, 20, 0.55)
+    P(746, 0.0, -5.2, 0, 30, 20, 0.55)
+    P(764, -2.2, -6.1, 0, 0, 0, 1.0)                   # skjult bak malingen
+    P(767, -2.2, -6.1, 0, 0, 0, 1.0)
+    P(778, 0.0, -6.1, 0.05, 10, 0, 1.05)               # TØRKER linsa
+    P(786, -0.3, -5.0, 0, 0, 0, 1.0)
+    P(792, -0.3, -5.0, 0, -6, 0, 1.1)                  # puh! (lettet)
+    P(800, -0.3, -5.0, 0, 0, 0, 0.98)
+    P(810, -0.3, -5.0, 0, 0, 0, 1.0)                   # smiler
+    P(816, -0.3, -5.0, 0, 0, 0, 0.88)
+    P(822, -0.3, -5.0, 0.25, -5, 0, 1.15)              # glad hopp
+    P(828, -0.3, -5.0, 0, 0, 0, 0.88)
+    P(834, -0.3, -5.0, 0, 0, 0, 1.02)
+    P(850, -0.3, -5.0, 0, 0, 0, 1.0)
+    P(862, -0.3, -5.0, 0, 0, 25, 1.04)                 # hører ham komme
+    P(870, -0.45, -5.0, 0, -8, 40, 0.9, ry=7)         # KLEM
+    P(876, -0.42, -5.0, 0, 0, 40, 1.04, ry=5)
+    P(884, -0.42, -5.0, 0, 0, 35, 1.0, ry=5)
+    P(892, -0.42, -5.0, 0, 0, 12, 1.0, ry=5)            # ser i kamera
+    P(898, -0.42, -5.0, 0, 0, 12, 1.06, ry=5)
+    for i, f in enumerate(range(910, 944, 8)):         # ler sammen
+        P(f, -0.42, -5.0, 0, -6 if i % 2 == 0 else 0, 12, 1.06 if i % 2 == 0 else 0.97, ry=5)
+    P(946, -0.4, -5.0, 0, 0, 14, 0.93, ry=7)         # ekstra klem
+    P(954, -0.42, -5.0, 0, 0, 12, 1.02, ry=5)
+    P(966, -0.42, -5.0, 0, 0, 12, 1.0, ry=5)
+    P(FRAME_END, -0.42, -5.0, 0, 0, 12, 1.01, ry=5)
 
 
 def animate_props(tub, bucket_g, bucket_b):
@@ -640,16 +671,6 @@ def animate_props(tub, bucket_g, bucket_b):
 
     # Guttens spann foran til høyre
     K(bucket_b, 1, loc=(1.7, -2.7, 0), rot=(0, 0, 0))
-    K(bucket_b, 668, loc=(1.7, -2.7, 0), rot=(0, 0, 0))
-    K(bucket_b, 672, loc=(1.69, -2.72, 0.85), rot=(0, 0, 0))
-    K(bucket_b, 678, loc=(1.25, -3.25, 0.95), rot=(0, 0, 0))
-    K(bucket_b, 686, loc=(0.78, -4.05, 1.05), rot=(0, 0, 0))
-    K(bucket_b, 694, loc=(0.3, -4.85, 0.95), rot=(0, 0, 0))
-    K(bucket_b, 698, loc=(0.3, -4.2, 2.2), rot=(-35, 0, 0))
-    K(bucket_b, 702, loc=(0.3, -4.9, 1.8), rot=(80, 0, 0))
-    K(bucket_b, 708, loc=(0.3, -4.85, 1.2), rot=(110, 0, 0))
-    K(bucket_b, 712, loc=(0.3, -4.85, 1.0), rot=(120, 0, 0))
-    K(bucket_b, 720, loc=(1.4, -3.85, 0.9), rot=(120, 0, 0))
 
 
 def build_paint_fx(coll, paint, boy, girl, cam_end):
@@ -692,8 +713,13 @@ def build_paint_fx(coll, paint, boy, girl, cam_end):
     # Avslutning: maling i kamera, tørkes av
     fwd = cam_end.rotation_euler.to_matrix() @ Vector((0, 0, -1))
     lens = cam_end.location + fwd * 0.3
-    throw_blob("Klatt_IKamera", coll, paint, (0.3, -4.9, 1.9), tuple(lens), 702, 708, height=0.35)
-    lens_paint(cam_end, coll, paint, 708, 716, 724)
+    throw_blob("Klatt_IKamera", coll, paint, (0.9, -0.05, 1.8), tuple(lens), 730, 742, height=0.8)
+    lens_paint(cam_end, coll, paint, 742, 768, 778)
+
+    # Sakte innzoom på ansiktene mot slutten
+    for f, lens_mm in ((786, 24.0), (FRAME_END, 34.0)):
+        cam_end.data.lens = lens_mm
+        cam_end.data.keyframe_insert("lens", frame=f)
 
 
 def lens_paint(cam, coll, mat, f_hit, f_wipe0, f_wipe1):
@@ -745,11 +771,29 @@ def build_cameras(coll):
         (212, "medium", "SH020 Spark, hodet ned i balja"),
         (296, "wide", "SH030 Malingskamp og jakt ut"),
         (452, "deep", "SH040 Jakt dypt i rommet, sklir, moro"),
-        (662, "end", "SH060 Maling i kamera, tørkes av, smil"),
+        (662, "end", "SH060 Jakt mot kamera, maling på linsa, klem"),
     ]
     for f, cam_key, label in shots:
         m = scene.timeline_markers.new(label, frame=f)
         m.camera = cams[cam_key]
+
+    # Ansiktsuttrykk til ferdig versjon (bare notater, bytter ikke kamera)
+    expressions = [
+        (668, "Uttrykk J: ertende, rekker tunge"),
+        (733, "Uttrykk J: skrekkslagen, ser seg tilbake"),
+        (738, "Uttrykk J: kniper øynene, dukker"),
+        (792, "Uttrykk J: lettet, puh!"),
+        (800, "Uttrykk J: lurt, fornøyd blikk i kamera"),
+        (810, "Uttrykk J: stort smil"),
+        (862, "Uttrykk J: overrasket, hører ham"),
+        (870, "Uttrykk G+J: klem, latter"),
+        (892, "Uttrykk G+J: smiler i kamera"),
+        (910, "Uttrykk G+J: fniser, ser på hverandre"),
+        (946, "Uttrykk G+J: ekstra klem, øynene igjen"),
+        (966, "Uttrykk G+J: varmt smil i kamera, hold"),
+    ]
+    for f, label in expressions:
+        scene.timeline_markers.new(label, frame=f)
     scene.camera = cams["wide"]
     return cams
 
@@ -824,7 +868,8 @@ def main():
     tub = build_bucket("Balje", c_props, paint, metal, r1=0.4, r2=0.47, depth=0.6)
     bucket_b = build_bucket("Spann_Gutt", c_props, paint, metal)
     bucket_g = build_bucket("Spann_Jente", c_props, paint, metal)
-    build_smile(girl, c_char, 734)
+    build_smile(girl, c_char, 810, "Jente")
+    build_smile(boy, c_char, 892, "Gutt", depth=FRONT + 0.06)
 
     _last_rz.clear()
     animate_boy(boy)

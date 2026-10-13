@@ -36,7 +36,7 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 - Tre-punkts område-lys: varm key, kjølig fill, rim bakfra.
 - Rekvisitter fra referansene: trekasse, en stor malingsbalje midt på gulvet, to malingsspann og brun maling som søles på gulvet.
 
-## Handling (24 fps, 768 frames ≈ 32 sek)
+## Handling (24 fps, 984 frames ≈ 41 sek)
 
 | Frames | Shot / kamera | Hva skjer |
 |--------|---------------|-----------|
@@ -44,9 +44,11 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 | 212–295 | SH020 `CAM_02_Medium` | Søster (hvit) løper inn fra høyre og sparker ham (f230). Han flyr i salto og havner med hodet ned i balja (f246). Han spreller, spretter opp full av maling og rister seg som en hund. |
 | 296–451 | SH030 `CAM_01_Wide` | Gutten kaster maling på henne (treff f326). Hun stamper, finner et spann ved trekassa og kaster, men bommer. Så kaster hun hele spannet etter ham og jager ham ut av bildet til venstre. |
 | 452–661 | SH040 `CAM_03_Dyp` | Hun kommer først inn igjen fra høyre, og han løper etter. De løper dypt inn i rommet og frem igjen, sklir i malingsdammen og glir på ryggen. De ligger og ler, spretter opp, tar en felles piruett og dunker borti hverandre. |
-| 662–768 | SH060 `CAM_04_Ende` | Gutten finner et spann, går mot kamera og heller maling rett i linsa (f708). Søster tørker av linsa (f716–724) og smiler til kamera. Slutt. |
+| 662–984 | SH060 `CAM_04_Ende` | Søster erter ham og løper dypt inn i rommet og så rett mot kamera. Gutten øser maling fra balja og kaster. Hun dukker unna, og malingen treffer linsa (f742). Hun tørker av linsa (f768–778), puster lettet ut og smiler i kamera. Gutten kommer løpende inn og klemmer henne (f870), og begge smiler og ler inn i kamera mens kameraet zoomer sakte inn. Slutt. |
 
 Kamerabyttene ligger som markører på tidslinja, bundet til kameraene, så *Viewport Render Animation* og vanlig render klipper automatisk.
+
+I tillegg ligger det markører som heter `Uttrykk …` (uten kamera). De angir hvilket ansiktsuttrykk figurene skal ha i den ferdige versjonen, for eksempel «ertende», «skrekkslagen», «lettet», «stort smil», «klem, latter» og «varmt smil i kamera». Hvert uttrykk har 1–3 sekunder å virke på.
 
 ## Justere
 
