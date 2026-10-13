@@ -440,17 +440,72 @@ def build_dragon(mat):
                 piv.keyframe_insert("rotation_euler", frame=ff)
             f += period
 
-    # Flybane: bryter opp forbi kanten, svinger ut og forsvinner i taken
-    # Starter rett under framekanten og er inne i bildet etter ~1,5 sek.
-    # Startet den lavere brukte den to tredjedeler av shotet pa a komme inn.
-    key_loc(root, fr["S23"]["start"], (0, -26.0, CLIFF_TOP_Z - 56.0))
-    key_loc(root, fr["S23"]["start"] + 60, (0, -40.0, CLIFF_TOP_Z))
-    key_loc(root, fr["S23"]["end"], (0, -50.0, CLIFF_TOP_Z + 40.0))
-    key_loc(root, fr["S24"]["start"] + 24, (0, -180.0, CLIFF_TOP_Z + 44.0))
-    # Ender godt inne i takebanken — vi skal miste henne, ikke se henne fly bort
-    key_loc(root, fr["S25"]["end"], (0, -1250.0, 250.0))
-    linear(root)
-    return coll, root
+    path = build_dragon_path(coll, root, fr)
+    return coll, root, path
+
+
+# Flybanen. Punktene er kontrollpunkter pa en Bezier-kurve, ikke keyframes,
+# nettopp sa du kan dra i dem. Rekkefolgen er flyretningen.
+DRAGON_PATH_POINTS = [
+    (0.0, -26.0, CLIFF_TOP_Z - 56.0),   # under kanten, ute av bildet
+    (0.0, -40.0, CLIFF_TOP_Z - 2.0),    # bryter opp forbi kanten
+    # AUTO-handtakene skyter over kontrollpunktet. Satt disse hoyere
+    # klatrer buen ut av S23-kameraets ramme midt i shotet.
+    (0.0, -56.0, CLIFF_TOP_Z + 18.0),   # over stupet, full vingespenn
+    (-46.0, -190.0, CLIFF_TOP_Z + 26.0),  # legger seg over og svinger ut
+    (-30.0, -620.0, 318.0),             # inn mot takebanken
+    (24.0, -1250.0, 250.0),             # borte inne i taken
+]
+
+
+def build_dragon_path(coll, root, fr):
+    """
+    Legger dragen pa en redigerbar Bezier-kurve i stedet for keyframede
+    posisjoner.
+
+    Flytt et kontrollpunkt i viewporten og hele flyvningen folger med —
+    med keyframes matte du treffe bade posisjon og tidspunkt pa nytt for
+    hver justering. Follow Path styrer ogsa orienteringen, sa dragen
+    peker dit den faktisk flyr uten at du roterer noe manuelt.
+    """
+    cu = bpy.data.curves.new("DRAGON_PATH", type="CURVE")
+    cu.dimensions = "3D"
+    cu.resolution_u = 24
+
+    spline = cu.splines.new("BEZIER")
+    spline.bezier_points.add(len(DRAGON_PATH_POINTS) - 1)
+    for bp, co in zip(spline.bezier_points, DRAGON_PATH_POINTS):
+        bp.co = Vector(co)
+        # AUTO gir myke tangenter som folger med nar du drar i punktet.
+        # Da slipper du a stelle handtakene for hand.
+        bp.handle_left_type = "AUTO"
+        bp.handle_right_type = "AUTO"
+
+    path = bpy.data.objects.new("DRAGON_PATH", cu)
+    coll.objects.link(path)
+    path.show_in_front = True
+
+    con = root.constraints.new("FOLLOW_PATH")
+    con.target = path
+    con.use_curve_follow = True
+    con.forward_axis = "FORWARD_Y"   # dragens hode peker +Y i blockouten
+    con.up_axis = "UP_Z"
+
+    # eval_time ligger pa kurvedataen, ikke pa objektet, og er det som
+    # styrer NAR dragen er hvor pa banen. Vil du endre tempoet uten a
+    # rore formen pa banen, er det disse tre nokkelen du flytter.
+    cu.use_path = True
+    total = fr["S25"]["end"] - fr["S23"]["start"]
+    cu.path_duration = total
+
+    cu.eval_time = 0.0
+    cu.keyframe_insert("eval_time", frame=fr["S23"]["start"])
+    cu.eval_time = total * 0.30          # utbruddet tar det forste stykket
+    cu.keyframe_insert("eval_time", frame=fr["S23"]["end"])
+    cu.eval_time = total
+    cu.keyframe_insert("eval_time", frame=fr["S25"]["end"])
+
+    return path
 
 
 def build_arrows(mat):
@@ -640,6 +695,7 @@ def main():
     out = "helios_previs.blend"
     if "--out" in argv:
         out = argv[argv.index("--out") + 1]
+    use_landscape = "--landscape" in argv
 
     random.seed(SEED)
     clear_scene()
@@ -655,9 +711,17 @@ def main():
     m_glow = grey("M_glow", 0.0, emission=14.0)
     m_fire = grey("M_fire", 0.0, emission=9.0)
 
-    build_ocean(m_sea)
+    if use_landscape:
+        # Den ekte lokasjonen i stedet for kassene. Samme koordinater, sa
+        # alle 25 kameraene treffer det samme — bare med fjell foran seg.
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import landscape_build
+        _, cave_glow = landscape_build.build("LANDSCAPE")
+    else:
+        build_ocean(m_sea)
+        _, cave_glow = build_cliff(m_rock, m_dark, m_glow)
+
     build_boats(m_hull, m_crew)
-    _, cave_glow = build_cliff(m_rock, m_dark, m_glow)
 
     # Grotta er mork til ropet i S14, sa tenner den.
     fr = {s["id"]: s for s in shot_frames()}
@@ -677,7 +741,8 @@ def main():
     total = shots[-1]["end"]
     setup_scene(total)
 
-    print(f"\n=== HELIOS previs bygget ===")
+    kind = "ekte landskap" if use_landscape else "blockout"
+    print(f"\n=== HELIOS previs bygget ({kind}) ===")
     print(f"  {len(shots)} shots, {total} frames, {total / FPS:.1f} sek @ {FPS}fps")
     for s in shots:
         print(f"  {s['id']}  {s['start']:>5}-{s['end']:<5} "

@@ -10,14 +10,21 @@ den pa nytt — ikke rediger `.blend`-fila og hap at du husker hva du gjorde.
 ## Komme i gang
 
 ```bash
-# Bygg scenen
+# Blockout — gra kasser, bygger pa sekunder
 blender --background --python previs_build.py -- --out helios_previs.blend
 
-# Apne den og spill av
-blender helios_previs.blend
+# Med den ekte lokasjonen: basaltsoyler, grotte, plata, sjostabler, hav
+blender --background --python previs_build.py -- --landscape --out helios_full.blend
+
+# Bare landskapet, uten shots og kameraer
+blender --background --python landscape_build.py -- --out helios_land.blend
 ```
 
-`helios_previs.blend` ligger ferdig bygget her hvis du bare vil se pa den.
+Begge `.blend`-filene ligger ferdig bygget her hvis du bare vil se pa dem.
+
+Bruk blockouten til a teste timing og klipperytme — den bygger og rendrer
+raskt. Bruk `--landscape` nar du vil se hvordan shotene faktisk sitter i
+terrenget.
 
 ## Rendre
 
@@ -45,6 +52,64 @@ kaffepause, ikke en natt.
 | `ARROWS` | 90 piler som en sverm |
 | `FOG` | Takebank, havdis, global dis |
 | `CAMERAS` | 25 kameraer + look-at-targets |
+| `LANDSCAPE` | Med `--landscape`: den ekte lokasjonen, erstatter `LOCATION` og `OCEAN` |
+
+## Landskapet (`landscape_build.py`)
+
+Prosedyregeometri, ~87 000 flater, bygget med `from_pydata` i stedet for
+`bpy.ops` per objekt — rundt 900 soyler som enkeltobjekter tar minutter, som
+ett mesh tar det sekunder.
+
+| Objekt | Hva det er |
+|---|---|
+| `CLIFF_columns` | Sekskantpakkede basaltsoyler over hele veggen |
+| `CLIFF_face` | Forvitret veggflate, med grotteapningen trukket inn i geometrien |
+| `CLIFF_body` | Massen bak. Starter pa y=+178, bak veggflatens dypeste punkt |
+| `CAVE_tunnel` | Gangen innover i fjellet |
+| `CAVE_glow` | Glodeflaten. Tennes paa ropet i S14 |
+| `PLATEAU` | Toppen. Flat i spillflaten, erodert utenfor |
+| `TALUS` | Ur der veggen moter sjoen |
+| `SEA_STACKS` | Reynisdrangar-aktige skjaer ute i sjoen |
+| `OCEAN` | Bolgesatt havflate |
+
+**Spillflaten paa plataet er helt flat paa `GROUND_Z`.** Det er ikke
+kosmetikk: previs plasserer mannen og fem kameraer paa den hoyden, og en
+myk utflating som bare naermer seg 352 m la terrenget over kameraene og
+rendret fem shots svarte. Kjernen (|x| < 87 m, y < 93 m fra kanten) er
+tvunget flat, og terrenget faar forst karakter utenfor den.
+
+## Dragens flybane — rediger den i viewporten
+
+Dragen ligger pa en Bezier-kurve, `DRAGON_PATH`, ikke pa keyframede
+posisjoner. Velg kurven, gaa i Edit Mode, og dra i kontrollpunktene — hele
+flyvningen folger med, og en Follow Path-constraint sorger for at dragen
+peker dit den faktisk flyr. Du trenger ikke rore rotasjon.
+
+Seks kontrollpunkter, i flyretning:
+
+| # | Hva det styrer |
+|---|---|
+| 1 | Startposisjon under kanten, ute av bildet |
+| 2 | Der hun bryter opp forbi kanten |
+| 3 | Toppen av buen over stupet |
+| 4 | Der hun legger seg over og svinger ut |
+| 5 | Inngangen i takebanken |
+| 6 | Sluttposisjonen, borte inne i taken |
+
+Handtakene staar paa AUTO, saa de folger med av seg selv naar du flytter et
+punkt. Vil du ha en skarpere sving, sett det punktets handtak til `Free`
+eller `Aligned` og dra i dem.
+
+**Tempoet er skilt fra formen.** Naar dragen er hvor paa banen styres av
+`eval_time` paa kurvedataen, med tre nokler: start paa S23, 30 % ved slutten
+av S23 (utbruddet), og full bane ved slutten av S25. Vil du at hun skal
+komme senere eller akselerere hardere, flytt de noklene — banen beholder
+formen.
+
+**Pass paa hoyden.** AUTO-handtakene skyter litt over kontrollpunktet, saa
+buen topper hoyere enn punkt 3. Med dagens verdier naar hun 379 m, og
+S23-kameraets ramme slutter rundt 392 m. Drar du punkt 3 oppover, sjekk at
+hun ikke klatrer ut av bildet midt i shotet.
 
 ## Tre ting som er verdt a vite
 
