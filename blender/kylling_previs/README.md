@@ -36,7 +36,8 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 
 - Hvit cyclorama (gulvet bøyer seg opp i bakveggen), ingen synlig horisont.
 - Tre-punkts område-lys: varm key, kjølig fill, rim bakfra.
-- Rekvisitter fra referansene: trekasse, en stor malingsbalje midt på gulvet, to malingsspann og brun maling som søles på gulvet.
+- Rekvisitter: trekasse, en stor regnbuebalje midt på gulvet (én kile i hver farge), et gult og et rosa malingsspann.
+- Malingen er i lyse, lekne farger: rosa, turkis, gul, lime, lilla, oransje og himmelblå. Hvert kast har sin egen farge, håndavtrykkene går i regnbuerekkefølge, og gutten blir dekket av flere farger når han dukkes i balja.
 
 ## Handling (24 fps, 984 frames ≈ 41 sek)
 
@@ -86,7 +87,7 @@ I tillegg ligger det markører som heter `Uttrykk …` (uten kamera). De angir h
   - `squash < 1` gir squash, `> 1` gir stretch.
   - `raw=True` bruker vinkelen udempet (salto, ligge på ryggen). `spin=True` gir hele piruetter.
 - **Maling:** `build_paint_fx()` styrer klatter, dammer, håndavtrykk, malingsdrakten og malingen på linsa.
-- **Farger:** konstantene øverst (`RED`, `BLACK`, `WHITE`, `PAINT` …).
+- **Farger:** konstantene øverst (`RED`, `BLACK`, `WHITE`) og malingsfargene i `PAINTS`. Hvilken farge hvert kast, hver dam og hver flekk har, settes i `build_paint_fx()`.
 - **Render:** EEVEE, 1920×1080 på 50 %, AgX, med stempel for shotnavn og kamera. For rask playblast bruker du *View → Viewport Render Animation*.
 
 ## Til AI-look

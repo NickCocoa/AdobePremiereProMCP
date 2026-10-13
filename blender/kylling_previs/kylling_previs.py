@@ -44,7 +44,16 @@ RED = (0.80, 0.03, 0.03)
 BLACK = (0.02, 0.02, 0.02)
 WHITE = (0.85, 0.85, 0.85)
 STUDIO_WHITE = (0.90, 0.88, 0.86)
-PAINT = (0.11, 0.035, 0.015)  # sjokoladebrun maling som på referansene
+# Lyse, lekne malingsfarger
+PAINTS = {
+    "Rosa": (0.95, 0.10, 0.42),
+    "Turkis": (0.0, 0.62, 0.62),
+    "Gul": (1.0, 0.68, 0.02),
+    "Lime": (0.30, 0.80, 0.04),
+    "Lilla": (0.38, 0.08, 0.88),
+    "Oransje": (1.0, 0.28, 0.02),
+    "Himmelblaa": (0.08, 0.40, 1.0),
+}
 METAL = (0.55, 0.55, 0.56)
 WOOD = (0.35, 0.22, 0.12)
 
@@ -90,6 +99,11 @@ def material(name, color, rough=0.5, metallic=0.0, emission=0.0):
             bsdf.inputs["Emission Color"].default_value = (*color, 1.0)
             bsdf.inputs["Emission Strength"].default_value = emission
     return m
+
+
+def pick(mat, i):
+    """Velg materiale i fra en liste (rundt og rundt), eller bruk det ene."""
+    return mat[i % len(mat)] if isinstance(mat, (list, tuple)) else mat
 
 
 def mesh_object(name, bm, coll, mats=()):
@@ -292,9 +306,17 @@ def build_bucket(name, coll, paint_mat, metal_mat, r1=0.19, r2=0.23, depth=0.36)
     sol = ob.modifiers.new("Solidify", "SOLIDIFY")
     sol.thickness = 0.012
 
+    mats = list(paint_mat) if isinstance(paint_mat, (list, tuple)) else [paint_mat]
+    r = r1 + (r2 - r1) * 0.85
     bm = bmesh.new()
-    bmesh.ops.create_circle(bm, cap_ends=True, segments=32, radius=r1 + (r2 - r1) * 0.85)
-    paint = mesh_object(name + "_Maling", bm, coll, [paint_mat])
+    center = bm.verts.new((0, 0, 0))
+    segs = 36
+    ring = [bm.verts.new((r * math.cos(2 * math.pi * i / segs), r * math.sin(2 * math.pi * i / segs), 0))
+            for i in range(segs)]
+    for i in range(segs):                              # én kile per farge
+        f = bm.faces.new((center, ring[i], ring[(i + 1) % segs]))
+        f.material_index = (i * len(mats)) // segs
+    paint = mesh_object(name + "_Maling", bm, coll, mats)
     paint.parent = ob
     paint.location = (0, 0, depth * 0.83)
     return ob
@@ -350,7 +372,7 @@ def splash(name, coll, mat, origin, f_hit, toward_x, count=6, seed=0):
     rnd = random.Random(seed)
     o = Vector(origin)
     for i in range(count):
-        ob = blob_mesh(f"{name}_{i}", coll, mat, radius=0.045)
+        ob = blob_mesh(f"{name}_{i}", coll, pick(mat, i), radius=0.045)
         v = Vector((toward_x * rnd.uniform(0.04, 0.10),
                     rnd.uniform(-0.09, 0.05),
                     rnd.uniform(0.04, 0.12)))
@@ -376,7 +398,10 @@ def build_paint_coat(target, coll, mat, f_on):
     bm = bmesh.new()
     bmesh.ops.create_cube(bm, size=1.0)
     bmesh.ops.scale(bm, vec=(CHAR_W + 0.05, CHAR_D + 0.05, h), verts=bm.verts)
-    ob = mesh_object("Gutt_Malingsdrakt", bm, coll, [mat])
+    mats = list(mat) if isinstance(mat, (list, tuple)) else [mat]
+    for i, f in enumerate(bm.faces):
+        f.material_index = i % len(mats)
+    ob = mesh_object("Gutt_Malingsdrakt", bm, coll, mats)
     bev = ob.modifiers.new("Bevel", "BEVEL")
     bev.width, bev.segments = 0.06, 3
     ob.parent = target
@@ -673,9 +698,12 @@ def animate_props(tub, bucket_g, bucket_b):
     K(bucket_b, 1, loc=(1.7, -2.7, 0), rot=(0, 0, 0))
 
 
-def build_paint_fx(coll, paint, boy, girl, cam_end):
+def build_paint_fx(coll, pm, boy, girl, cam_end):
+    rainbow = list(pm.values())
     # Gutten kaster maling rundt seg fra balja
-    for i, (ft, tgt) in enumerate(((104, (-2.6, -1.4)), (122, (-0.5, -2.0)), (140, (-2.2, 1.8)))):
+    for i, (ft, tgt, col) in enumerate(((104, (-2.6, -1.4), "Rosa"), (122, (-0.5, -2.0), "Gul"),
+                                       (140, (-2.2, 1.8), "Lime"))):
+        paint = pm[col]
         d = (Vector(tgt) - Vector((-0.9, 0.4))).normalized()
         start = (-0.9 + d.x * 0.45, 0.4 + d.y * 0.45, 1.7)
         throw_blob(f"Klatt_Rundt_{i}", coll, paint, start, (*tgt, 0.05), ft, ft + 10, height=0.8)
@@ -687,34 +715,34 @@ def build_paint_fx(coll, paint, boy, girl, cam_end):
     # Håndavtrykk på gulvet
     for i, f in enumerate(range(160, 196, 6)):
         x = -0.6 + 0.27 * (i + 1) + (0.1 if i % 2 else -0.1)
-        floor_puddle(f"Handavtrykk_{i}", coll, paint, (x, -1.45), f, size=0.16, grow=3)
+        floor_puddle(f"Handavtrykk_{i}", coll, pick(rainbow, i), (x, -1.45), f, size=0.16, grow=3)
 
     # Plask i balja + malingsdrakt
-    splash("Sprut_Balje_V", coll, paint, (-0.2, 0.4, 0.6), 246, toward_x=-1, count=8, seed=20)
-    splash("Sprut_Balje_H", coll, paint, (0.2, 0.4, 0.6), 246, toward_x=1, count=8, seed=21)
-    floor_puddle("Dam_Balje", coll, paint, (0.0, 0.15), 248, size=0.75, grow=20)
-    build_paint_coat(boy, coll, paint, 278)
-    floor_puddle("Dam_Gutt_Drypp", coll, paint, (-1.0, 0.25), 288, size=0.45, grow=25)
-    splash("Sprut_Rister_V", coll, paint, (-1.0, 0.4, 1.4), 292, toward_x=-1, count=10, seed=22)
-    splash("Sprut_Rister_H", coll, paint, (-1.0, 0.4, 1.4), 292, toward_x=1, count=10, seed=23)
+    splash("Sprut_Balje_V", coll, rainbow, (-0.2, 0.4, 0.6), 246, toward_x=-1, count=8, seed=20)
+    splash("Sprut_Balje_H", coll, rainbow[3:] + rainbow[:3], (0.2, 0.4, 0.6), 246, toward_x=1, count=8, seed=21)
+    floor_puddle("Dam_Balje", coll, pm["Turkis"], (0.0, 0.15), 248, size=0.75, grow=20)
+    build_paint_coat(boy, coll, [pm["Turkis"], pm["Rosa"], pm["Gul"], pm["Lilla"], pm["Lime"], pm["Oransje"]], 278)
+    floor_puddle("Dam_Gutt_Drypp", coll, pm["Lilla"], (-1.0, 0.25), 288, size=0.45, grow=25)
+    splash("Sprut_Rister_V", coll, rainbow, (-1.0, 0.4, 1.4), 292, toward_x=-1, count=10, seed=22)
+    splash("Sprut_Rister_H", coll, rainbow[2:] + rainbow[:2], (-1.0, 0.4, 1.4), 292, toward_x=1, count=10, seed=23)
 
     # Gutten kaster tilbake: treffer jenta
-    throw_blob("Klatt_GuttTilJente", coll, paint, (-0.35, 0.4, 1.75), (1.62, 0.35, 1.1), 316, 326)
-    splat_on(girl, "Flekk_Jente", coll, paint, 326, (0.0, 1.1))
-    splash("Sprut_Jente", coll, paint, (1.6, 0.25, 1.1), 326, toward_x=-1, seed=24)
-    floor_puddle("Dam_Jente", coll, paint, (1.5, -0.1), 328, size=0.3)
+    throw_blob("Klatt_GuttTilJente", coll, pm["Lilla"], (-0.35, 0.4, 1.75), (1.62, 0.35, 1.1), 316, 326)
+    splat_on(girl, "Flekk_Jente", coll, pm["Lilla"], 326, (0.0, 1.1))
+    splash("Sprut_Jente", coll, pm["Lilla"], (1.6, 0.25, 1.1), 326, toward_x=-1, seed=24)
+    floor_puddle("Dam_Jente", coll, pm["Lilla"], (1.5, -0.1), 328, size=0.3)
 
     # Jenta kaster med spann, bommer
-    throw_blob("Klatt_JenteTilGutt", coll, paint, (2.55, 0.95, 1.8), (-1.3, 0.3, 0.05), 386, 396)
-    floor_puddle("Dam_Bom", coll, paint, (-1.3, 0.3), 396, size=0.5, grow=10)
-    splash("Sprut_Bom", coll, paint, (-1.3, 0.3, 0.05), 396, toward_x=-1, seed=25)
-    floor_puddle("Dam_Spann_Jente", coll, paint, (-1.85, -1.75), 412, size=0.45, grow=25)
+    throw_blob("Klatt_JenteTilGutt", coll, pm["Rosa"], (2.55, 0.95, 1.8), (-1.3, 0.3, 0.05), 386, 396)
+    floor_puddle("Dam_Bom", coll, pm["Rosa"], (-1.3, 0.3), 396, size=0.5, grow=10)
+    splash("Sprut_Bom", coll, pm["Rosa"], (-1.3, 0.3, 0.05), 396, toward_x=-1, seed=25)
+    floor_puddle("Dam_Spann_Jente", coll, pm["Rosa"], (-1.85, -1.75), 412, size=0.45, grow=25)
 
     # Avslutning: maling i kamera, tørkes av
     fwd = cam_end.rotation_euler.to_matrix() @ Vector((0, 0, -1))
     lens = cam_end.location + fwd * 0.3
-    throw_blob("Klatt_IKamera", coll, paint, (0.9, -0.05, 1.8), tuple(lens), 730, 742, height=0.8)
-    lens_paint(cam_end, coll, paint, 742, 768, 778)
+    throw_blob("Klatt_IKamera", coll, pm["Oransje"], (0.9, -0.05, 1.8), tuple(lens), 730, 742, height=0.8)
+    lens_paint(cam_end, coll, [pm["Oransje"], pm["Rosa"], pm["Gul"], pm["Himmelblaa"]], 742, 768, 778)
 
     # Sakte innzoom på ansiktene mot slutten
     for f, lens_mm in ((786, 24.0), (FRAME_END, 34.0)):
@@ -727,14 +755,14 @@ def lens_paint(cam, coll, mat, f_hit, f_wipe0, f_wipe1):
     blobs = [((0, 0), (0.26, 0.17)), ((-0.14, 0.07), (0.1, 0.08)),
              ((0.13, -0.07), (0.11, 0.07)), ((0.06, 0.1), (0.08, 0.06))]
     for i, ((x, y), (sx, sy)) in enumerate(blobs):
-        ob = blob_mesh(f"Kamera_Maling_{i}", coll, mat)
+        ob = blob_mesh(f"Kamera_Maling_{i}", coll, pick(mat, i))
         ob.parent = cam
         z = -0.2 + i * 0.002
         pop(ob, f_hit + (i > 0), full=(sx, sy, 0.004), overshoot=1.0 if i == 0 else 1.2)
         key(ob, f_wipe0, loc=(x, y, z))
         key(ob, f_wipe1, loc=(x + 0.65, y, z))
     for i, x in enumerate((-0.06, 0.03, 0.08)):        # drypp som renner nedover
-        ob = blob_mesh(f"Kamera_Drypp_{i}", coll, mat)
+        ob = blob_mesh(f"Kamera_Drypp_{i}", coll, pick(mat, i + 1))
         ob.parent = cam
         pop(ob, f_hit + 2, full=(0.012, 0.02, 0.004), overshoot=1.0)
         key(ob, f_hit + 2, loc=(x, -0.02, -0.199))
@@ -882,14 +910,14 @@ def main():
     build_studio(c_set)
     build_lights(c_light)
 
-    paint = material("M_Maling", PAINT, rough=0.12)
+    pm = {k: material(f"M_Maling_{k}", c, rough=0.12) for k, c in PAINTS.items()}
     metal = material("M_Metall", METAL, rough=0.3, metallic=1.0)
 
     boy = build_character("Gutt", "GUTT", BLACK, c_char, c_label)
     girl = build_character("Jente", "JENTE", WHITE, c_char, c_label)
-    tub = build_bucket("Balje", c_props, paint, metal, r1=0.4, r2=0.47, depth=0.6)
-    bucket_b = build_bucket("Spann_Gutt", c_props, paint, metal)
-    bucket_g = build_bucket("Spann_Jente", c_props, paint, metal)
+    tub = build_bucket("Balje", c_props, list(pm.values()), metal, r1=0.4, r2=0.47, depth=0.6)
+    bucket_b = build_bucket("Spann_Gutt", c_props, pm["Gul"], metal)
+    bucket_g = build_bucket("Spann_Jente", c_props, pm["Rosa"], metal)
     build_smile(girl, c_char, 810, "Jente")
     build_smile(boy, c_char, 892, "Gutt", depth=FRONT + 0.06)
 
@@ -898,7 +926,7 @@ def main():
     animate_girl(girl)
     animate_props(tub, bucket_g, bucket_b)
     cams = build_cameras(c_cam)
-    build_paint_fx(c_fx, paint, boy, girl, cams["end"])
+    build_paint_fx(c_fx, pm, boy, girl, cams["end"])
     setup_render()
 
     args = parse_args()
