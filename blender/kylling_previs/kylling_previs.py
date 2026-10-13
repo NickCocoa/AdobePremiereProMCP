@@ -1290,6 +1290,17 @@ CUTS = [
 ]
 
 
+def fcurves_of(idb):
+    ad = getattr(idb, "animation_data", None)
+    if not ad or not ad.action:
+        return []
+    act = ad.action
+    if getattr(act, "layers", None):                   # Blender 4.4+ (slotted actions)
+        return [fc for layer in act.layers for strip in layer.strips
+                for bag in strip.channelbags for fc in bag.fcurves]
+    return list(act.fcurves)
+
+
 def iter_fcurves():
     ids = (list(bpy.data.objects) + list(bpy.data.cameras) + list(bpy.data.lights)
            + list(bpy.data.materials) + list(bpy.data.worlds)
@@ -1335,6 +1346,61 @@ def apply_cuts():
         else:
             m.frame = int(retime(m.frame))
     scene.frame_end = int(retime(FRAME_END))
+
+
+# Pusterom: (frame etter CUTS, antall frames). Alt fryses og holdes ved frame,
+# og figurene puster litt mens de står. Alt etterpå skyves bakover.
+HOLDS = [
+    (90, 18),     # han ser ned i regnbuemalingen og jubler
+    (160, 18),    # står og beundrer verket sitt før søster kommer
+    (262, 20),    # dryppende av maling, stirrer på henne før han slår tilbake
+    (312, 14),    # søster stopper opp når hun får øye på spannet
+    (340, 12),    # «uh-oh», han fryser
+    (572, 16),    # de ligger og puster ut etter latteren
+    (748, 14),    # søster puster lettet ut etter at linsa er tørket
+    (1014, 14),   # hun ser på broren og får en idé før hoppeklemmen
+]
+END_HOLD = 24     # siste bilde står litt før det er slutt
+
+
+def apply_holds():
+    scene = bpy.context.scene
+    chars = [bpy.data.objects.get(n) for n in ("Gutt", "Jente")]
+    char_curves = {id(fc) for ob in chars if ob for fc in fcurves_of(ob)}
+    fx = [ob for ob in bpy.data.objects if ob.name.startswith(("Sprut", "Flekker", "Klatt"))]
+    for at, n in sorted(HOLDS, reverse=True):
+        # Sprut og klatter som er i lufta akkurat nå, får fly ferdig i stedet for å fryse
+        skip = set()
+        for ob in fx:
+            curves = fcurves_of(ob)
+            frames = [kp.co.x for fc in curves for kp in fc.keyframe_points]
+            if frames and min(frames) < at <= max(frames):
+                skip.update(id(fc) for fc in curves)
+        for fc in iter_fcurves():
+            if id(fc) in skip:
+                continue
+            v = fc.evaluate(at)
+            for kp in fc.keyframe_points:
+                if kp.co.x >= at:
+                    kp.co.x += n
+                    kp.handle_left.x += n
+                    kp.handle_right.x += n
+            fc.keyframe_points.insert(at, v)
+            fc.keyframe_points.insert(at + n, v)
+            fc.update()
+        for ob in chars:                               # litt pust i holdet
+            if not ob:
+                continue
+            for fc in fcurves_of(ob):
+                if fc.data_path == "scale":
+                    v = fc.evaluate(at)
+                    fc.keyframe_points.insert(at + n // 2, v * (1.025 if fc.array_index == 2 else 0.988))
+                    fc.update()
+        for m in scene.timeline_markers:
+            if m.frame >= at:
+                m.frame += n
+        scene.frame_end += n
+    scene.frame_end += END_HOLD
 
 
 # --------------------------------------------------------------------------
@@ -1430,6 +1496,7 @@ def main():
     build_finale(boy, girl, cams["end"], c_char)
     setup_render()
     apply_cuts()
+    apply_holds()
 
     args = parse_args()
     if "save" in args:
