@@ -30,7 +30,9 @@ from mathutils import Quaternion, Vector
 
 FPS = 24
 FRAME_START = 1
-FRAME_END = 1240  # før klipp (CUTS) og pauser (HOLDS)
+FAKE_END = 1240   # den «falske» slutten (spotlyset smalner inn)
+DANCE = 1266      # BAM! strobelys og dans
+FRAME_END = 1420  # før klipp (CUTS) og pauser (HOLDS)
 
 # Karakter-proporsjoner (meter): høy blokk som leses som en person
 CHAR_W = 0.7   # bredde (skulder til skulder)
@@ -584,7 +586,7 @@ def animate_boy(b):
     P(946, 0.53, -5.0, 0, 0, -14, 0.93, ry=-7)         # ekstra klem
     P(954, 0.55, -5.0, 0, 0, -12, 1.02, ry=-5)
     P(966, 0.55, -5.0, 0, 0, -12, 1.0, ry=-5)          # varmt smil, hold
-    P(FRAME_END, 0.55, -5.0, 0, 0, -12, 1.01, ry=-5)
+    P(FAKE_END, 0.55, -5.0, 0, 0, -12, 1.01, ry=-5)
 
 
 def animate_girl(g):
@@ -674,7 +676,7 @@ def animate_girl(g):
     P(946, -0.4, -5.0, 0, 0, 14, 0.93, ry=7)         # ekstra klem
     P(954, -0.42, -5.0, 0, 0, 12, 1.02, ry=5)
     P(966, -0.42, -5.0, 0, 0, 12, 1.0, ry=5)
-    P(FRAME_END, -0.42, -5.0, 0, 0, 12, 1.01, ry=5)
+    P(FAKE_END, -0.42, -5.0, 0, 0, 12, 1.01, ry=5)
 
 
 def animate_props(tub, bucket_g, bucket_b):
@@ -931,7 +933,7 @@ def build_paint_fx(coll, pm, boy, girl, cam_end):
     lens_paint(cam_end, coll, [pm["Oransje"], pm["Rosa"], pm["Gul"], pm["Himmelblaa"]], 742, 768, 778)
 
     # Sakte innzoom på ansiktene mot slutten
-    for f, lens_mm in ((786, 24.0), (990, 34.0), (FRAME_END, 27.0)):
+    for f, lens_mm in ((786, 24.0), (990, 34.0), (FAKE_END, 27.0)):
         cam_end.data.lens = lens_mm
         cam_end.data.keyframe_insert("lens", frame=f)
 
@@ -1002,8 +1004,8 @@ def build_finale(boy, girl, cam, coll, f_dark=990, f_wave=1012, f_hug=1088):
     start_rot = cam.rotation_euler.copy()
     cam.location = (0.0, -10.5, 2.4)
     look_at(cam, target)
-    cam.keyframe_insert("location", frame=FRAME_END)
-    cam.keyframe_insert("rotation_euler", frame=FRAME_END)
+    cam.keyframe_insert("location", frame=FAKE_END)
+    cam.keyframe_insert("rotation_euler", frame=FAKE_END)
     cam.location, cam.rotation_euler = start_loc, start_rot
 
     # Vinke-armer (enkle blokker i kroppsfarge) og vinking
@@ -1054,16 +1056,16 @@ def build_finale(boy, girl, cam, coll, f_dark=990, f_wave=1012, f_hug=1088):
     G(h + 74, -0.08, -5.0, 0, 0, 25, 0.92, ry=12)
     B(h + 82, 0.58, -5.0, 0, 0, -15, 1.04, ry=-6)         # snur seg mot kamera
     G(h + 82, -0.25, -5.0, 0, 0, 15, 1.04, ry=6)
-    for i, f in enumerate(range(h + 92, FRAME_END - 4, 12)):   # smiler, puster sammen
+    for i, f in enumerate(range(h + 92, FAKE_END - 4, 12)):   # smiler, puster sammen
         sq = 1.02 if i % 2 else 0.99
         G(f, -0.25, -5.0, 0, 0, 12, sq, ry=6)
         B(f, 0.58, -5.0, 0, 0, -12, sq, ry=-6)
-    G(FRAME_END, -0.25, -5.0, 0, 0, 12, 1.0, ry=6)
-    B(FRAME_END, 0.58, -5.0, 0, 0, -12, 1.0, ry=-6)
+    G(FAKE_END, -0.25, -5.0, 0, 0, 12, 1.0, ry=6)
+    B(FAKE_END, 0.58, -5.0, 0, 0, -12, 1.0, ry=-6)
 
     # Spotlyset smalner inn rundt dem mens de smiler
     sl = bpy.data.lights["Lys_Spot_Finale"]
-    for f, deg, energy in ((h + 80, 32, 2500), (FRAME_END - 8, 11, 2500)):
+    for f, deg, energy in ((h + 80, 32, 2500), (FAKE_END - 8, 11, 2500)):
         sl.spot_size = math.radians(deg)
         sl.energy = energy
         sl.keyframe_insert("spot_size", frame=f)
@@ -1169,6 +1171,7 @@ def build_cinematic(cams, boy, girl, coll):
         ("cu_aha", head_g, [(354, 364, 0.15)]),
         ("cu_oops", head_b, [(752, 766, 0.2)]),
         ("cu_jump", mid, [(1086, 1124, 0.3)]),
+        ("dance", mid, [(DANCE, DANCE + 126, 0.5)]),
     ]
     for key_, target, windows in cu:
         aim(cams[key_], target)
@@ -1189,6 +1192,146 @@ def build_cinematic(cams, boy, girl, coll):
 
     # Sluttkameraet har egne nøkler, bare fokus her
     dof(cams["end"], mid, 4.0)
+
+
+# --------------------------------------------------------------------------
+# Overraskelse: falsk slutt, så strobelys og dans mot kamera, jazz hands
+# --------------------------------------------------------------------------
+
+def dance_arms(ob, coll):
+    """To armer med flate hender, i kroppsfarge. Origo i skulderen, peker opp."""
+    arms = {}
+    for side in (-1, 1):
+        bm = bmesh.new()
+        bmesh.ops.create_cube(bm, size=1.0)
+        bmesh.ops.scale(bm, vec=(0.12, 0.12, 0.5), verts=bm.verts)
+        bmesh.ops.translate(bm, vec=(0, 0, 0.25), verts=bm.verts)
+        arm = mesh_object(f"{ob.name}_Dansearm_{'V' if side < 0 else 'H'}", bm, coll, [ob.data.materials[0]])
+        arm.parent = ob
+        arm.location = (side * (CHAR_W / 2 + 0.07), 0, 1.1)
+        bm = bmesh.new()
+        bmesh.ops.create_cube(bm, size=1.0)
+        bmesh.ops.scale(bm, vec=(0.22, 0.05, 0.2), verts=bm.verts)  # spredt hånd
+        hand = mesh_object(arm.name + "_Haand", bm, coll, [ob.data.materials[0]])
+        hand.parent = arm
+        hand.location = (0, 0, 0.58)
+        pop(arm, DANCE, overshoot=1.2)
+        arms[side] = arm
+    return arms
+
+
+def key_arm(arm, f, deg):
+    arm.rotation_euler = (0, math.radians(deg), 0)
+    arm.keyframe_insert("rotation_euler", frame=f)
+
+
+def build_dance(boy, girl, coll):
+    D = DANCE
+    jazz = D + 126
+    spot = bpy.data.objects["Lys_Spot_Finale"]
+    sl = spot.data
+
+    # Falsk slutt: spotlyset slukker helt, noen øyeblikk i svart
+    sl.energy = 2500
+    sl.keyframe_insert("energy", frame=FAKE_END + 6)
+    sl.energy = 0
+    sl.keyframe_insert("energy", frame=FAKE_END + 14)
+    with interpolation("CONSTANT"):
+        sl.keyframe_insert("energy", frame=D - 1)
+    # BAM: spotlyset tilbake, bredere, og følger dem mot kamera
+    for f, energy, deg, loc in ((D, 3000, 42, (0.06, -5.0, 6.5)), (jazz - 6, 3000, 40, (0.05, -6.3, 6.5)),
+                                (jazz, 3600, 30, (0.05, -6.4, 6.5))):
+        sl.energy, sl.spot_size, spot.location = energy, math.radians(deg), loc
+        sl.keyframe_insert("energy", frame=f)
+        sl.keyframe_insert("spot_size", frame=f)
+        spot.keyframe_insert("location", frame=f)
+    spot.location = (0.06, -5.0, 6.5)
+    spot.keyframe_insert("location", frame=FRAME_START)
+
+    # Strobelys i fire farger som blinker i utakt
+    colors = [PAINTS["Rosa"], PAINTS["Turkis"], PAINTS["Gul"], PAINTS["Lilla"]]
+    spots = [(-4.0, -8.0, 4.0), (4.0, -8.0, 4.0), (-3.0, -2.5, 5.0), (3.0, -2.5, 5.0)]
+    for i, (pos, col) in enumerate(zip(spots, colors)):
+        ld = bpy.data.lights.new(f"Lys_Strobe_{i}", "SPOT")
+        ld.color, ld.spot_size, ld.spot_blend = col, math.radians(55), 0.2
+        ob = bpy.data.objects.new(f"Lys_Strobe_{i}", ld)
+        coll.objects.link(ob)
+        ob.location = pos
+        look_at(ob, (0.1, -5.8, 0.9))
+        with interpolation("CONSTANT"):
+            ld.energy = 0
+            ld.keyframe_insert("energy", frame=FRAME_START)
+            for k, f in enumerate(range(D, jazz, 3)):
+                ld.energy = 4000 if (k + i) % 4 in (0, 1) else 0
+                ld.keyframe_insert("energy", frame=f)
+            ld.energy = 0
+            ld.keyframe_insert("energy", frame=jazz)
+        for fc in fcurves_of(ld):                      # av/på, ingen myke overganger
+            for kp in fc.keyframe_points:
+                kp.interpolation = "CONSTANT"
+
+    # Armer
+    ab, ag = dance_arms(boy, coll), dance_arms(girl, coll)
+    for arms in (ab, ag):
+        key_arm(arms[-1], D, -30)
+        key_arm(arms[1], D, 30)
+
+    # Gutten: robotdans, sidesteg med harde vendinger, mot kamera
+    B = lambda *a, **k: pose(boy, *a, **k)
+    G = lambda *a, **k: pose(girl, *a, **k)
+    B(FAKE_END + 14, 0.58, -5.0, 0, 0, -12, 1.0, ry=-6)
+    B(D - 1, 0.58, -5.0, 0, 0, -12, 0.8, ry=0)              # lader opp i mørket
+    B(D, 0.62, -5.0, 0.4, -10, 0, 1.25)                     # BAM!
+    B(D + 6, 0.7, -5.2, 0, 0, 0, 0.78)
+    steps = list(range(D + 12, D + 108, 6))
+    for k, f in enumerate(steps):
+        y = -5.2 - 1.1 * (k + 1) / len(steps)
+        x = 0.95 if k % 2 else 0.65
+        rz = 30 if k % 4 in (0, 1) else -30
+        B(f, x, y, 0.06 if k % 2 else 0, 0, rz, 0.92 if k % 2 else 1.06)
+        key_arm(ab[1], f, 90 if k % 2 else 10)              # robotarmer
+        key_arm(ab[-1], f, -10 if k % 2 else -90)
+
+    # Søster: snurrer og vugger, hender i været, mot kamera
+    G(FAKE_END + 14, -0.25, -5.0, 0, 0, 12, 1.0, ry=6)
+    G(D - 1, -0.25, -5.0, 0, 0, 12, 0.8, ry=0)
+    rz = _last_rz[girl.name] - 12                            # snurrene regnes fra der hun står
+    G(D, -0.3, -5.0, 0.45, -10, rz, 1.25, spin=True)         # BAM!
+    G(D + 6, -0.4, -5.2, 0, 0, rz, 0.78, spin=True)
+    for k, f in enumerate(range(D + 12, D + 108, 6)):
+        y = -5.2 - 1.1 * (k + 1) / 16
+        x = -0.65 if k % 2 else -0.4
+        if k % 4 == 2:
+            rz += 180                                        # snurr (to halve omdreininger)
+        if k % 4 == 3:
+            rz += 180
+        G(f, x, y, 0.1 if k % 2 else 0, 0, rz, 1.05 if k % 2 else 0.95,
+          ry=(10 if k % 2 else -10), spin=True)
+        key_arm(ag[-1], f, -20 if k % 2 else -50)            # hendene i været
+        key_arm(ag[1], f, 20 if k % 2 else 50)
+
+    # Sammen igjen, lader opp, JAZZ HANDS
+    G(D + 114, -0.55, -6.4, 0, 0, rz, 1.0, spin=True)
+    B(D + 114, 0.6, -6.4, 0, 0, 0, 1.0)
+    G(jazz - 6, -0.55, -6.4, 0, 0, rz + 10, 0.8, spin=True)
+    B(jazz - 6, 0.6, -6.4, 0, 0, -10, 0.8)
+    for arms in (ab, ag):
+        key_arm(arms[-1], D + 114, -150)
+        key_arm(arms[1], D + 114, 150)
+        key_arm(arms[-1], jazz - 6, -170)
+        key_arm(arms[1], jazz - 6, 170)
+        key_arm(arms[-1], jazz, -60)                         # JAZZ HANDS!
+        key_arm(arms[1], jazz, 60)
+        key_arm(arms[-1], jazz + 4, -55)
+        key_arm(arms[1], jazz + 4, 55)
+    G(jazz, -0.55, -6.4, 0.25, -5, rz + 10, 1.15, ry=-6, spin=True)
+    B(jazz, 0.6, -6.4, 0.25, -5, -10, 1.15, ry=6)
+    G(jazz + 5, -0.55, -6.4, 0, 0, rz + 10, 0.92, ry=-6, spin=True)
+    B(jazz + 5, 0.6, -6.4, 0, 0, -10, 0.92, ry=6)
+    G(jazz + 10, -0.55, -6.4, 0, 0, rz + 10, 1.02, ry=-6, spin=True)
+    B(jazz + 10, 0.6, -6.4, 0, 0, -10, 1.02, ry=6)
+    G(FRAME_END, -0.55, -6.4, 0, 0, rz + 10, 1.0, ry=-6, spin=True)
+    B(FRAME_END, 0.6, -6.4, 0, 0, -10, 1.0, ry=6)
 
 
 # --------------------------------------------------------------------------
@@ -1229,6 +1372,7 @@ def build_cameras(coll):
         "cu_aha": cam("CAM_CU_12_Aha", (3.9, 1.7, 1.3), (2.25, 0.35, 1.45), 40),
         "cu_oops": cam("CAM_CU_13_Oi", (0.8, -1.5, 1.5), (0.95, 0.4, 1.35), 42),
         "cu_jump": cam("CAM_CU_14_Hoppeklem", (0.35, -7.3, 1.6), (0.3, -5.0, 1.6), 30),
+        "dance": cam("CAM_15_Dans", (0.05, -10.6, 1.35), (0.05, -6.0, 1.3), 28),
     }
 
     scene = bpy.context.scene
@@ -1264,6 +1408,7 @@ def build_cameras(coll):
         (946, "end", "SH062 Varmt smil i kamera, mørkt, spot, de vinker"),
         (1086, "cu_jump", "SH063 CU Hoppeklem"),
         (1124, "end", "SH064 Klem i spotlyset, kamera trekker seg bak"),
+        (DANCE - 8, "dance", "SH065 Falsk slutt i svart, så BAM: strobelys og dans"),
     ]
     for f, cam_key, label in shots:
         m = scene.timeline_markers.new(label, frame=f)
@@ -1291,6 +1436,9 @@ def build_cameras(coll):
         (1114, "Uttrykk G+J: klemmer hardt, øynene igjen, ler"),
         (1160, "Uttrykk G: klemmer henne igjen, stolt og glad"),
         (1172, "Uttrykk G+J: smiler mot kamera, hodene inntil hverandre"),
+        (DANCE, "Uttrykk G+J: BAM! stor overraskelse og glede"),
+        (DANCE + 24, "Uttrykk G: kul og konsentrert robotdans, J: lykkelig, snurrer med øynene igjen"),
+        (DANCE + 126, "Uttrykk G+J: JAZZ HANDS! enorme smil, glitrende øyne"),
     ]
     for f, label in expressions:
         scene.timeline_markers.new(label, frame=f)
@@ -1403,13 +1551,16 @@ def apply_holds():
             if fkey(fc) in skip:
                 continue
             v = fc.evaluate(at)
+            before = [kp for kp in fc.keyframe_points if kp.co.x < at]
+            interp = max(before, key=lambda kp: kp.co.x).interpolation if before else "BEZIER"
             for kp in fc.keyframe_points:
                 if kp.co.x >= at:
                     kp.co.x += n
                     kp.handle_left.x += n
                     kp.handle_right.x += n
-            fc.keyframe_points.insert(at, v)
-            fc.keyframe_points.insert(at + n, v)
+            for f in (at, at + n):                     # holdet arver interpolasjonen
+                kp = fc.keyframe_points.insert(f, v)   # (CONSTANT forblir CONSTANT)
+                kp.interpolation = interp
             fc.update()
         for ob in chars:                               # litt pust i holdet
             if not ob:
@@ -1517,6 +1668,7 @@ def main():
     build_knockables(c_props, c_fx, pm, metal)
     build_paint_marks(c_fx, pm)
     build_finale(boy, girl, cams["end"], c_char)
+    build_dance(boy, girl, c_light)
     setup_render()
     apply_cuts()
     apply_holds()
