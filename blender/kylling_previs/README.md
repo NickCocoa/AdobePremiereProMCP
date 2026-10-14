@@ -29,7 +29,7 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 | `Jente` | Gul kylling i korall kjole med sløyfe | hvit | rød |
 
 - Høy blokk på 0,7 × 0,5 × 1,7 m (bredde × dybde × høyde), så den leses som en person. Origo er i bunnen, så squash/stretch skjer fra gulvet. Mål endres i `CHAR_W`, `CHAR_D` og `CHAR_H` øverst i skriptet.
-- Forsiden (lokal −Y) er rød, så du alltid ser hvilken vei de ser.
+- Forsiden (lokal −Y) er rød, så du alltid ser hvilken vei de ser. Også etter at gutten er dukket i balja, er forsiden hans rød med fargeflekker, for malingsdrakten dekker bare hode, sider og rygg.
 - Navneskilt over hodet vises bare i viewport, ikke i render.
 
 ## Studio
@@ -40,7 +40,7 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 - Rommet blir gradvis mer malt. Det kommer flekker rundt hvert søl (kast, balja, risting, treff, tårnet, skliingen), og fargede fotavtrykk etter dem når de løper. Gutten drypper turkis og lilla etter dukkingen, og søster tråkker rosa. Dette lages i `build_paint_marks()`.
 - Malingen er i lyse, lekne farger: rosa, turkis, gul, lime, lilla, oransje og himmelblå. Hvert kast har sin egen farge, håndavtrykkene går i regnbuerekkefølge, og gutten blir dekket av flere farger når han dukkes i balja.
 
-## Handling (24 fps, 1494 frames ≈ 62 sek)
+## Handling (24 fps, 1410 frames ≈ 59 sek)
 
 | Frames | Del | Hva skjer |
 |--------|-----|-----------|
@@ -48,8 +48,8 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 | 204–317 | Søster kommer | Søster (hvit) løper inn og sparker ham (f222). Han tar salto, og et lavt nærbilde viser plasket når han havner med hodet først i balja (f238). Hun ler, og han spretter opp full av maling og rister seg som en hund, og blir stående dryppende og stirre på henne. |
 | 318–521 | Malingskamp | Gutten kaster på henne (treff f338). Hun blir sint, ser spannet (nærbilde «aha!»), kaster og bommer, og jager ham. Totalen blir stående mens begge løper ut av bildet til venstre. Så panorerer kameraet raskt til høyre (f487–493), og de kommer løpende inn igjen fra høyre, hun først og han etter. |
 | 522–725 | Jakten dypt i rommet | De løper dypt inn i rommet. Hun raser forbi kameraet og river ned tårnet. Begge sklir i den store gule malingsdammen med beina til værs og malingssprut, og de ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
-| 726–1307 | Slutten | Hun løper mot kamera og dukker, og malingen hans treffer linsa (f796). Nærbilde av gutten: «oi!», og han fniser. Hun tørker linsa (f822–832) og smiler. Han kommer og klemmer henne (f906). Det blir mørkt med et spotlys ovenfra (f1026–1044), og de vinker. Hun hopper opp og klemmer broren (nærbilde, f1146), og kameraet trekker seg bak i spotlyset. Hun glir ned, og han klemmer henne igjen (f1212). Begge snur seg og smiler mot kamera med hodene inntil hverandre, mens spotlyset smalner inn rundt dem (f1218–1282). Det ser ut som slutten. |
-| 1308–1494 | Overraskelsen | Spotlyset slukker, og det er svart et lite øyeblikk (falsk slutt). BAM (f1316): strobelys i rosa, turkis, gult og lilla blinker i utakt, og de bryter ut i dans. Gutten gjør robotdans med sidesteg og harde vendinger, og søster snurrer og vugger med hendene i været. Begge danser mot kamera, lader opp og avslutter i en JAZZ HANDS-pose (f1442) i et varmt spotlys. Slutt. |
+| 726–1207 | Slutten | Hun løper mot kamera og dukker, og malingen hans treffer linsa. Nærbilde av gutten: «oi!», og han fniser. Hun tørker linsa og smiler. Han kommer og klemmer henne. Det blir mørkt med et spotlys ovenfra, og de vinker. Hun hopper opp og klemmer broren (nærbilde), og han klemmer henne igjen. Begge smiler mot kamera mens spotlyset smalner inn. Det ser ut som slutten. |
+| 1208–1410 | Overraskelsen | Spotlyset slukker, og det er svart et kort øyeblikk (falsk slutt). BAM (f1216): strobelys i fire farger, og de hopper opp med armene i været. Én og én danser de mot kamera med hvert sitt lave nærbilde: først gutten med robotdans, mens søster vugger i bakgrunnen, så søster som snurrer frem. Til slutt kommer begge helt frem, griper kameraet med hver sin hånd og har innerarmene rundt hverandre. Kameraet får et lite rykk og skjelver litt, og de smiler rett inn i linsa. Slutt. |
 
 **Pusterom.** Åtte korte pauser på 0,5–0,8 sekunder gir tid til reaksjonene, og figurene puster mens de står:
 1. Han ser ned i regnbuemalingen.
@@ -77,7 +77,7 @@ Sju ting står plassert langs løpeveiene og veltes når figurene løper forbi. 
 | 743 | Gutten jager henne | Lime malingsboks velter og søler |
 | 763 | Søster løper mot kamera | Krakk velter |
 
-Overraskelsen med strobelys, dans og jazz hands lages i `build_dance()`. Armene med flate hender (`dance_arms()`) dukker opp ved BAM.
+Overraskelsen med strobelys, solodanser og grepet om kameraet lages i `build_dance()`. Armene med flate hender (`dance_arms()`) dukker opp ved BAM.
 
 Avslutningen med mørke, spotlys, kameraet som trekker seg bak, vinkingen, hoppeklemmen, den nye klemmen og spotlyset som smalner inn lages i `build_finale()`.
 
@@ -116,11 +116,14 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 | 820 | `CAM_04_Ende` | SH0607 Søster tørker linsa og smiler |
 | 940 | `CAM_CU_07_Klem` | SH061 CU Klem, fniser til hverandre |
 | 982 | `CAM_04_Ende` | SH062 Varmt smil i kamera, mørkt, spot, de vinker |
-| 1122 | `CAM_CU_14_Hoppeklem` | SH063 CU Hoppeklem |
-| 1174 | `CAM_04_Ende` | SH064 Klem i spotlyset, kamera trekker seg bak |
-| 1308 | `CAM_15_Dans` | SH065 Falsk slutt i svart, så BAM: strobelys og dans |
+| 1092 | `CAM_CU_14_Hoppeklem` | SH063 CU Hoppeklem |
+| 1144 | `CAM_04_Ende` | SH064 Klem i spotlyset, kamera trekker seg bak |
+| 1208 | `CAM_15_Dans` | SH065 Falsk slutt i svart, så BAM: strobelys |
+| 1228 | `CAM_16_Dans_Gutt` | SH066 Guttens robotdans mot kamera (lav vinkel) |
+| 1276 | `CAM_17_Dans_Jente` | SH067 Søster snurrer frem mot kamera (lav vinkel) |
+| 1320 | `CAM_15_Dans` | SH068 De kommer helt frem og griper kameraet sammen |
 
-Nesten alle skudd er under ca. 6 sekunder. Dansen (`CAM_15_Dans`) er ett langt skudd på ca. 7,5 sekunder. Det kan deles opp ved AI-generering, for eksempel ved BAM og ved jazz hands.
+Ingen skudd er lenger enn ca. 6 sekunder, bortsett fra det siste der de holder kameraet.
 
 Over-skulder-bildene (OTS) har den andre figuren i forgrunnen, så relasjonen mellom dem er med i bildet.
 
