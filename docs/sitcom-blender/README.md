@@ -6,6 +6,20 @@ Verifisert mot **Blender 5.2 LTS** (bpy 5.2.2), skrevet defensivt for 4.x.
 
 ---
 
+## Hva som ligger her
+
+| Fil | |
+|---|---|
+| `build_set.py` | Kilden. Alt annet i mappa er generert fra denne |
+| `vaktskiftet_varemottaket.blend` | Ferdig scene. Åpne direkte hvis du vil hoppe over kjøringen |
+| `stills/` | Referansebilder fra de fire kameraene i beat 1 |
+
+Stillsene er rendret i Cycles CPU, 40 samples, utelukkende for å verifisere framing og lysverdier. Scenen selv står på EEVEE. De er ikke et uttrykk for look — det kommer i restyle-passet.
+
+`.blend`-fila er et bekvemmelighetsartefakt. **Skriptet er sannheten.** Endrer du noe, endre det i skriptet og generer på nytt, ellers driver de fra hverandre.
+
+---
+
 ## Kjør det
 
 I Blender, fanen Scripting → åpne `build_set.py` → Run.
