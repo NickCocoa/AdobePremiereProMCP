@@ -40,18 +40,20 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 - Rommet blir gradvis mer malt. Det kommer flekker rundt hvert søl (kast, balja, risting, treff, tårnet, skliingen), og fargede fotavtrykk etter dem når de løper. Gutten drypper turkis og lilla etter dukkingen, og søster tråkker rosa. Dette lages i `build_paint_marks()`.
 - Malingen er i lyse, lekne farger: rosa, turkis, gul, lime, lilla, oransje og himmelblå. Hvert kast har sin egen farge, håndavtrykkene går i regnbuerekkefølge, og gutten blir dekket av flere farger når han dukkes i balja.
 
-## Handling (24 fps, 1552 frames ≈ 65 sek)
+## Handling (24 fps, 1566 frames ≈ 65 sek)
 
 | Frames | Del | Hva skjer |
 |--------|-----|-----------|
-| 1–215 | Åpning | Et følgeskudd bakfra følger gutten (svart) mens han løper inn. Nærbilde fra balja: han titter ned i regnbuemalingen og jubler. Han kaster maling rundt seg (total), et innklipp viser håndavtrykkene, og han står og beundrer verket sitt. |
-| 216–369 | Søster kommer | Han ser søster komme. Hun sparker ham, og han havner med hodet først i balja (lavt nærbilde). Hun ler godt av ham, og han spretter opp full av maling, rister seg og blir stående og stirre på henne. |
-| 370–595 | Malingskamp | Han kaster på henne. Hun får sjokk og blir sint, ser spannet («aha!»), kaster og bommer. Han fryser («uh-oh»), og hun jager ham. Begge løper helt ut av bildet til venstre på hver sin bane. Når de er ute, panorerer kameraet raskt til høyre, og de kommer løpende inn igjen fra høyre. |
-| 596–821 | Jakten dypt i rommet | De løper dypt inn i rommet. Hun raser forbi kameraet og river ned tårnet. Begge sklir i den gule dammen og ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
-| 822–1349 | Slutten | Hun løper mot kamera og dukker, og malingen hans treffer linsa. Gutten sier «oi!» og fniser. Hun tørker linsa, puster lettet ut og smiler. Han klemmer henne, og de fniser sammen. Det blir mørkt med et spotlys ovenfra, og de vinker. Hun hopper opp og klemmer broren, og han klemmer henne igjen. Begge smiler mot kamera mens spotlyset smalner inn. Det ser ut som slutten. |
-| 1350–1552 | Overraskelsen | Spotlyset slukker, og det er svart et kort øyeblikk (falsk slutt). BAM: strobelys i fire farger. Én og én danser de mot kamera med hvert sitt lave nærbilde: først gutten med robotdans, så søster som snurrer. Til slutt griper begge kameraet sammen og smiler rett inn i linsa. Slutt. |
+| 1–215 | Åpning | Et følgeskudd bakfra følger gutten (svart) mens han løper inn. Nærbilde fra balja: han titter ned og jubler. Over skulderen hans ser vi ned i regnbuemalingen. Han kaster maling rundt seg (total), et innklipp viser håndavtrykkene, og han står og beundrer verket sitt. |
+| 216–369 | Søster kommer | Han ser søster komme. Hun sparker ham, og han havner med hodet først i balja. Hun ler godt av ham, og han spretter opp full av maling, rister seg og blir stående og stirre på henne. |
+| 370–595 | Malingskamp | Han kaster på henne. Hun får sjokk og blir sint, ser spannet («aha!»), kaster og bommer. Han fryser («uh-oh»), og hun jager ham. Begge løper helt ut av bildet, kameraet panorerer raskt til høyre, og de kommer inn igjen. |
+| 596–821 | Jakten dypt i rommet | De løper dypt inn i rommet. Hun river ned tårnet. Begge sklir i den gule dammen og ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
+| 822–1163 | Linsa og klemmen | Hun løper mot kamera og dukker, og malingen hans treffer linsa. Gutten sier «oi!» og fniser. Hun tørker linsa, puster lettet ut og smiler. Han klemmer henne, de fniser sammen og gir et varmt smil i kamera. |
+| 1164–1299 | Leken | Hun får en idé og hopper opp på broren (f1172). Han rister henne av seg, og hun flyr av og ler. Han lader opp og hopper på henne (f1244), men hun dukker unna, og han går pladask med nesa i gulvet (f1252). Hun ler så hun rister (sett fra gulvet). |
+| 1300–1383 | Fest | Hun begynner å danse. Lyset i rommet dempes, og strobelys i fire farger starter. Han ligger på gulvet og nikker i takt (nærbilde), og så slenger han seg opp og danser også (f1356). |
+| 1384–1566 | Slutten | Én og én danser de mot kamera med hvert sitt lave nærbilde: først gutten med robotdans, så søster som snurrer. Til slutt kommer begge helt frem og griper kameraet sammen (f1494). Strobelysene slukker, rommet blir lyst og varmt igjen, og de smiler rett inn i linsa. Slutt. |
 
-**Pusterom og reaksjoner.** 14 pauser på 0,6–1,1 sekunder gir tid til reaksjonene og relasjonen mellom dem. Figurene puster mens de står:
+**Pusterom og reaksjoner.** 16 pauser på 0,4–1,1 sekunder gir tid til reaksjonene og relasjonen mellom dem. Figurene puster mens de står:
 1. Han ser ned i regnbuemalingen.
 2. Han beundrer verket sitt.
 3. Han ser søster komme.
@@ -65,7 +67,9 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 11. Han sier «oi!» og fniser.
 12. Hun puster lettet ut etter linsa.
 13. De fniser i klemmen.
-14. Hun ser på broren før hoppeklemmen.
+14. Hun henger på ham, og han ser lurt opp.
+15. Pladask: stille et øyeblikk.
+16. Han ligger og får en idé før han slenger seg opp.
 
 ### Ting som veltes
 
@@ -81,9 +85,7 @@ Sju ting står plassert langs løpeveiene og veltes når figurene løper forbi. 
 | 839 | Gutten jager henne | Lime malingsboks velter og søler |
 | 859 | Søster løper mot kamera | Krakk velter |
 
-Overraskelsen med strobelys, solodanser og grepet om kameraet lages i `build_dance()`. Armene med flate hender (`dance_arms()`) dukker opp ved BAM.
-
-Avslutningen med mørke, spotlys, kameraet som trekker seg bak, vinkingen, hoppeklemmen, den nye klemmen og spotlyset som smalner inn lages i `build_finale()`.
+Slutten med leken, festen med strobelys, solodansene og grepet om kameraet lages i `build_ending()`. Lyset styres av `light_level()`: det dempes når festen starter, og rommet blir lyst igjen når de griper kameraet.
 
 Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatter()` sender en stabel flyvende.
 
@@ -93,6 +95,7 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 |-------|--------|------|
 | 1 | `CAM_00_Tracking` | SH010 Følger gutten bakfra til balja |
 | 76 | `CAM_CU_09_Fra_Balja` | SH011 CU fra balja: han oppdager regnbuemalingen |
+| 86 | `CAM_CU_15_Ned_I_Balja_OTS` | SH011b Over skulderen hans, ned i regnbuemalingen |
 | 124 | `CAM_01_Wide` | SH012 Kaster maling rundt seg |
 | 166 | `CAM_CU_10_Handavtrykk` | SH013 Innklipp: håndavtrykk på gulvet |
 | 182 | `CAM_01_Wide` | SH014 Beundrer verket sitt |
@@ -119,13 +122,16 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 | 902 | `CAM_CU_13_Oi` | SH0605 CU Gutten: oi! fniser |
 | 932 | `CAM_04_Ende` | SH0607 Søster tørker linsa og smiler |
 | 1058 | `CAM_CU_07_Klem` | SH061 CU Klem, fniser til hverandre |
-| 1120 | `CAM_04_Ende` | SH062 Varmt smil i kamera, mørkt, spot, de vinker |
-| 1230 | `CAM_CU_14_Hoppeklem` | SH063 CU Hoppeklem |
-| 1286 | `CAM_04_Ende` | SH064 Klem i spotlyset, kamera trekker seg bak |
-| 1350 | `CAM_15_Dans` | SH065 Falsk slutt i svart, så BAM: strobelys |
-| 1370 | `CAM_16_Dans_Gutt` | SH066 Guttens robotdans mot kamera (lav vinkel) |
-| 1418 | `CAM_17_Dans_Jente` | SH067 Søster snurrer frem mot kamera (lav vinkel) |
-| 1462 | `CAM_15_Dans` | SH068 De kommer helt frem og griper kameraet sammen |
+| 1120 | `CAM_04_Ende` | SH062 Varmt smil i kamera |
+| 1162 | `CAM_CU_14_Hoppeklem` | SH063 CU Hoppeklem, han rister henne av seg |
+| 1234 | `CAM_18_Pladask` | SH064 Han hopper på henne, hun dukker, pladask |
+| 1270 | `CAM_CU_19_Fra_Gulvet` | SH065 Hun ler av ham (fra gulvet ved hodet hans) |
+| 1300 | `CAM_20_Fest` | SH066 Hun begynner å danse, lyset dempes, strobelys |
+| 1318 | `CAM_CU_21_Nikker` | SH067 CU Han ligger og nikker i takt |
+| 1346 | `CAM_20_Fest` | SH068 Han slenger seg opp og danser |
+| 1384 | `CAM_16_Dans_Gutt` | SH070 Guttens robotdans mot kamera (lav vinkel) |
+| 1432 | `CAM_17_Dans_Jente` | SH071 Søster snurrer frem mot kamera (lav vinkel) |
+| 1476 | `CAM_15_Dans` | SH072 De kommer helt frem og griper kameraet, rommet blir lyst |
 
 Ingen skudd er lenger enn ca. 6 sekunder, bortsett fra det siste der de holder kameraet.
 
