@@ -40,7 +40,7 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 - Rommet blir gradvis mer malt. Det kommer flekker rundt hvert søl (kast, balja, risting, treff, tårnet, skliingen), og fargede fotavtrykk etter dem når de løper. Gutten drypper turkis og lilla etter dukkingen, og søster tråkker rosa. Dette lages i `build_paint_marks()`.
 - Malingen er i lyse, lekne farger: rosa, turkis, gul, lime, lilla, oransje og himmelblå. Hvert kast har sin egen farge, håndavtrykkene går i regnbuerekkefølge, og gutten blir dekket av flere farger når han dukkes i balja.
 
-## Handling (24 fps, 1238 frames ≈ 52 sek)
+## Handling (24 fps, 1314 frames ≈ 55 sek)
 
 | Frames | Del | Hva skjer |
 |--------|-----|-----------|
@@ -48,7 +48,7 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 | 204–317 | Søster kommer | Søster (hvit) løper inn og sparker ham (f222). Han tar salto, og et lavt nærbilde viser plasket når han havner med hodet først i balja (f238). Hun ler, og han spretter opp full av maling og rister seg som en hund, og blir stående dryppende og stirre på henne. |
 | 318–521 | Malingskamp | Gutten kaster på henne (treff f338). Hun blir sint, ser spannet (nærbilde «aha!»), kaster og bommer, og jager ham. Totalen blir stående mens begge løper ut av bildet til venstre. Så panorerer kameraet raskt til høyre (f487–493), og de kommer løpende inn igjen fra høyre, hun først og han etter. |
 | 522–725 | Jakten dypt i rommet | De løper dypt inn i rommet. Hun raser forbi kameraet og river ned tårnet. Begge sklir i den store gule malingsdammen med beina til værs og malingssprut, og de ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
-| 726–1238 | Slutten | Hun løper mot kamera og dukker, og malingen hans treffer linsa (f796). Nærbilde av gutten: «oi!», og han fniser. Hun tørker linsa (f822–832) og smiler. Han kommer og klemmer henne (f906). Det blir mørkt med et spotlys ovenfra (f1026–1044), og de vinker. Hun hopper opp og klemmer broren (nærbilde, f1146), og kameraet trekker seg bak i spotlyset. Slutt. |
+| 726–1314 | Slutten | Hun løper mot kamera og dukker, og malingen hans treffer linsa (f796). Nærbilde av gutten: «oi!», og han fniser. Hun tørker linsa (f822–832) og smiler. Han kommer og klemmer henne (f906). Det blir mørkt med et spotlys ovenfra (f1026–1044), og de vinker. Hun hopper opp og klemmer broren (nærbilde, f1146), og kameraet trekker seg bak i spotlyset. Hun glir ned, og han klemmer henne igjen (f1212). Begge snur seg og smiler mot kamera med hodene inntil hverandre, mens spotlyset smalner inn rundt dem (f1218–1282). Slutt. |
 
 **Pusterom.** Åtte korte pauser på 0,5–0,8 sekunder gir tid til reaksjonene, og figurene puster mens de står:
 1. Han ser ned i regnbuemalingen.
@@ -76,7 +76,7 @@ Sju ting står plassert langs løpeveiene og veltes når figurene løper forbi. 
 | 743 | Gutten jager henne | Lime malingsboks velter og søler |
 | 763 | Søster løper mot kamera | Krakk velter |
 
-Avslutningen med mørke, spotlys, kameraet som trekker seg bak, vinkingen og hoppeklemmen lages i `build_finale()`.
+Avslutningen med mørke, spotlys, kameraet som trekker seg bak, vinkingen, hoppeklemmen, den nye klemmen og spotlyset som smalner inn lages i `build_finale()`.
 
 Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatter()` sender en stabel flyvende.
 

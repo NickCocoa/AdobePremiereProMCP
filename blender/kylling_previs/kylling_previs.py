@@ -30,7 +30,7 @@ from mathutils import Quaternion, Vector
 
 FPS = 24
 FRAME_START = 1
-FRAME_END = 1164  # 48,5 sek før klipp (CUTS)
+FRAME_END = 1240  # før klipp (CUTS) og pauser (HOLDS)
 
 # Karakter-proporsjoner (meter): høy blokk som leses som en person
 CHAR_W = 0.7   # bredde (skulder til skulder)
@@ -1042,12 +1042,32 @@ def build_finale(boy, girl, cam, coll, f_dark=990, f_wave=1012, f_hug=1088):
     B(h + 18, 0.75, -5.0, 0, -6, -55, 0.95, ry=-22)
     B(h + 26, 0.66, -5.0, 0, 0, -50, 1.04, ry=-12)        # finner balansen
     G(h + 26, 0.0, -5.0, 0.3, 0, 60, 1.0, ry=16)
-    for i, f in enumerate(range(h + 34, FRAME_END - 6, 10)):   # klemmer og ler
+    for i, f in enumerate(range(h + 34, h + 60, 10)):   # klemmer og ler
         sq = 0.95 if i % 2 == 0 else 1.03
         G(f, 0.0, -5.0, 0.3 if i % 2 else 0.26, 0, 40, sq, ry=16 + (3 if i % 2 else 0))
         B(f, 0.66, -5.0, 0, 0, -32, sq, ry=-12 - (3 if i % 2 else 0))
-    G(FRAME_END, 0.0, -5.0, 0.28, 0, 35, 1.0, ry=16)
-    B(FRAME_END, 0.66, -5.0, 0, 0, -28, 1.0, ry=-12)
+
+    # Hun glir ned, han klemmer henne igjen, og begge smiler mot kamera
+    G(h + 66, -0.05, -5.0, 0, 0, 30, 0.9, ry=8)           # ned på gulvet
+    B(h + 66, 0.62, -5.0, 0, 0, -30, 1.0, ry=-6)
+    B(h + 74, 0.52, -5.0, 0, 8, -40, 0.9, ry=-16)         # KLEMMER henne igjen
+    G(h + 74, -0.08, -5.0, 0, 0, 25, 0.92, ry=12)
+    B(h + 82, 0.58, -5.0, 0, 0, -15, 1.04, ry=-6)         # snur seg mot kamera
+    G(h + 82, -0.25, -5.0, 0, 0, 15, 1.04, ry=6)
+    for i, f in enumerate(range(h + 92, FRAME_END - 4, 12)):   # smiler, puster sammen
+        sq = 1.02 if i % 2 else 0.99
+        G(f, -0.25, -5.0, 0, 0, 12, sq, ry=6)
+        B(f, 0.58, -5.0, 0, 0, -12, sq, ry=-6)
+    G(FRAME_END, -0.25, -5.0, 0, 0, 12, 1.0, ry=6)
+    B(FRAME_END, 0.58, -5.0, 0, 0, -12, 1.0, ry=-6)
+
+    # Spotlyset smalner inn rundt dem mens de smiler
+    sl = bpy.data.lights["Lys_Spot_Finale"]
+    for f, deg, energy in ((h + 80, 32, 2500), (FRAME_END - 8, 11, 2500)):
+        sl.spot_size = math.radians(deg)
+        sl.energy = energy
+        sl.keyframe_insert("spot_size", frame=f)
+        sl.keyframe_insert("energy", frame=f)
 
 
 # --------------------------------------------------------------------------
@@ -1269,6 +1289,8 @@ def build_cameras(coll):
         (1096, "Uttrykk J: hopper, stor jubel"),
         (1101, "Uttrykk G: overrasket, tar imot henne"),
         (1114, "Uttrykk G+J: klemmer hardt, øynene igjen, ler"),
+        (1160, "Uttrykk G: klemmer henne igjen, stolt og glad"),
+        (1172, "Uttrykk G+J: smiler mot kamera, hodene inntil hverandre"),
     ]
     for f, label in expressions:
         scene.timeline_markers.new(label, frame=f)
@@ -1366,7 +1388,8 @@ END_HOLD = 24     # siste bilde står litt før det er slutt
 def apply_holds():
     scene = bpy.context.scene
     chars = [bpy.data.objects.get(n) for n in ("Gutt", "Jente")]
-    char_curves = {id(fc) for ob in chars if ob for fc in fcurves_of(ob)}
+    # Stabil nøkkel per kurve (Python-id-er for RNA-objekter gjenbrukes og kan ikke brukes)
+    fkey = lambda fc: (fc.id_data.name, fc.data_path, fc.array_index)
     fx = [ob for ob in bpy.data.objects if ob.name.startswith(("Sprut", "Flekker", "Klatt"))]
     for at, n in sorted(HOLDS, reverse=True):
         # Sprut og klatter som er i lufta akkurat nå, får fly ferdig i stedet for å fryse
@@ -1375,9 +1398,9 @@ def apply_holds():
             curves = fcurves_of(ob)
             frames = [kp.co.x for fc in curves for kp in fc.keyframe_points]
             if frames and min(frames) < at <= max(frames):
-                skip.update(id(fc) for fc in curves)
+                skip.update(fkey(fc) for fc in curves)
         for fc in iter_fcurves():
-            if id(fc) in skip:
+            if fkey(fc) in skip:
                 continue
             v = fc.evaluate(at)
             for kp in fc.keyframe_points:
