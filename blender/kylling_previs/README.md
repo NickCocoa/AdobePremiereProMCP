@@ -40,28 +40,32 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 - Rommet blir gradvis mer malt. Det kommer flekker rundt hvert søl (kast, balja, risting, treff, tårnet, skliingen), og fargede fotavtrykk etter dem når de løper. Gutten drypper turkis og lilla etter dukkingen, og søster tråkker rosa. Dette lages i `build_paint_marks()`.
 - Malingen er i lyse, lekne farger: rosa, turkis, gul, lime, lilla, oransje og himmelblå. Hvert kast har sin egen farge, håndavtrykkene går i regnbuerekkefølge, og gutten blir dekket av flere farger når han dukkes i balja.
 
-## Handling (24 fps, 1410 frames ≈ 59 sek)
+## Handling (24 fps, 1552 frames ≈ 65 sek)
 
 | Frames | Del | Hva skjer |
 |--------|-----|-----------|
-| 1–203 | Åpning | Et følgeskudd bakfra følger gutten (svart) mens han løper inn og velter en malingsboks på veien til balja. Nærbilde fra balja: han titter ned i regnbuemalingen og jubler. Han kaster maling rundt seg (total), og et innklipp viser håndavtrykkene på gulvet. |
-| 204–317 | Søster kommer | Søster (hvit) løper inn og sparker ham (f222). Han tar salto, og et lavt nærbilde viser plasket når han havner med hodet først i balja (f238). Hun ler, og han spretter opp full av maling og rister seg som en hund, og blir stående dryppende og stirre på henne. |
-| 318–521 | Malingskamp | Gutten kaster på henne (treff f338). Hun blir sint, ser spannet (nærbilde «aha!»), kaster og bommer, og jager ham. Totalen blir stående mens begge løper ut av bildet til venstre. Så panorerer kameraet raskt til høyre (f487–493), og de kommer løpende inn igjen fra høyre, hun først og han etter. |
-| 522–725 | Jakten dypt i rommet | De løper dypt inn i rommet. Hun raser forbi kameraet og river ned tårnet. Begge sklir i den store gule malingsdammen med beina til værs og malingssprut, og de ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
-| 726–1207 | Slutten | Hun løper mot kamera og dukker, og malingen hans treffer linsa. Nærbilde av gutten: «oi!», og han fniser. Hun tørker linsa og smiler. Han kommer og klemmer henne. Det blir mørkt med et spotlys ovenfra, og de vinker. Hun hopper opp og klemmer broren (nærbilde), og han klemmer henne igjen. Begge smiler mot kamera mens spotlyset smalner inn. Det ser ut som slutten. |
-| 1208–1410 | Overraskelsen | Spotlyset slukker, og det er svart et kort øyeblikk (falsk slutt). BAM (f1216): strobelys i fire farger, og de hopper opp med armene i været. Én og én danser de mot kamera med hvert sitt lave nærbilde: først gutten med robotdans, mens søster vugger i bakgrunnen, så søster som snurrer frem. Til slutt kommer begge helt frem, griper kameraet med hver sin hånd og har innerarmene rundt hverandre. Kameraet får et lite rykk og skjelver litt, og de smiler rett inn i linsa. Slutt. |
+| 1–215 | Åpning | Et følgeskudd bakfra følger gutten (svart) mens han løper inn. Nærbilde fra balja: han titter ned i regnbuemalingen og jubler. Han kaster maling rundt seg (total), et innklipp viser håndavtrykkene, og han står og beundrer verket sitt. |
+| 216–369 | Søster kommer | Han ser søster komme. Hun sparker ham, og han havner med hodet først i balja (lavt nærbilde). Hun ler godt av ham, og han spretter opp full av maling, rister seg og blir stående og stirre på henne. |
+| 370–595 | Malingskamp | Han kaster på henne. Hun får sjokk og blir sint, ser spannet («aha!»), kaster og bommer. Han fryser («uh-oh»), og hun jager ham. Begge løper helt ut av bildet til venstre på hver sin bane. Når de er ute, panorerer kameraet raskt til høyre, og de kommer løpende inn igjen fra høyre. |
+| 596–821 | Jakten dypt i rommet | De løper dypt inn i rommet. Hun raser forbi kameraet og river ned tårnet. Begge sklir i den gule dammen og ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
+| 822–1349 | Slutten | Hun løper mot kamera og dukker, og malingen hans treffer linsa. Gutten sier «oi!» og fniser. Hun tørker linsa, puster lettet ut og smiler. Han klemmer henne, og de fniser sammen. Det blir mørkt med et spotlys ovenfra, og de vinker. Hun hopper opp og klemmer broren, og han klemmer henne igjen. Begge smiler mot kamera mens spotlyset smalner inn. Det ser ut som slutten. |
+| 1350–1552 | Overraskelsen | Spotlyset slukker, og det er svart et kort øyeblikk (falsk slutt). BAM: strobelys i fire farger. Én og én danser de mot kamera med hvert sitt lave nærbilde: først gutten med robotdans, så søster som snurrer. Til slutt griper begge kameraet sammen og smiler rett inn i linsa. Slutt. |
 
-**Pusterom.** Åtte korte pauser på 0,5–0,8 sekunder gir tid til reaksjonene, og figurene puster mens de står:
+**Pusterom og reaksjoner.** 14 pauser på 0,6–1,1 sekunder gir tid til reaksjonene og relasjonen mellom dem. Figurene puster mens de står:
 1. Han ser ned i regnbuemalingen.
 2. Han beundrer verket sitt.
-3. Han står dryppende og stirrer på henne.
-4. Hun får øye på spannet.
-5. «Uh-oh», han fryser.
-6. De puster ut etter latteren.
-7. Hun puster lettet ut etter linsa.
-8. Hun ser på broren før hoppeklemmen.
-
-Siste bilde står i ett sekund før det er slutt.
+3. Han ser søster komme.
+4. Hun ler av ham i balja.
+5. Han står dryppende og stirrer på henne.
+6. Hun får sjokk når hun blir truffet.
+7. Hun får øye på spannet.
+8. «Uh-oh», han fryser.
+9. De ligger og puster ut etter latteren.
+10. Hun erter ham.
+11. Han sier «oi!» og fniser.
+12. Hun puster lettet ut etter linsa.
+13. De fniser i klemmen.
+14. Hun ser på broren før hoppeklemmen.
 
 ### Ting som veltes
 
@@ -70,12 +74,12 @@ Sju ting står plassert langs løpeveiene og veltes når figurene løper forbi. 
 | Frame | Hvem | Hva |
 |-------|------|-----|
 | 31 | Gutten løper inn | Gul malingsboks velter og søler |
-| 203 | Søster løper inn | Krakk velter |
-| 433 | Gutten flykter | Kjegle velter |
-| 443 | Gutten flykter | Eskestabel flyr |
-| 550 | Søster dypt i rommet | Tårn av malingsbokser (rosa, blå, lime) raser og søler |
-| 743 | Gutten jager henne | Lime malingsboks velter og søler |
-| 763 | Søster løper mot kamera | Krakk velter |
+| 215 | Søster løper inn | Krakk velter |
+| 507 | Gutten flykter | Kjegle velter |
+| 517 | Gutten flykter | Eskestabel flyr |
+| 624 | Søster dypt i rommet | Tårn av malingsbokser (rosa, blå, lime) raser og søler |
+| 839 | Gutten jager henne | Lime malingsboks velter og søler |
+| 859 | Søster løper mot kamera | Krakk velter |
 
 Overraskelsen med strobelys, solodanser og grepet om kameraet lages i `build_dance()`. Armene med flate hender (`dance_arms()`) dukker opp ved BAM.
 
@@ -89,39 +93,39 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 |-------|--------|------|
 | 1 | `CAM_00_Tracking` | SH010 Følger gutten bakfra til balja |
 | 76 | `CAM_CU_09_Fra_Balja` | SH011 CU fra balja: han oppdager regnbuemalingen |
-| 118 | `CAM_01_Wide` | SH012 Kaster maling rundt seg |
-| 160 | `CAM_CU_10_Handavtrykk` | SH013 Innklipp: håndavtrykk på gulvet |
-| 176 | `CAM_01_Wide` | SH014 Beundrer verket sitt |
-| 204 | `CAM_02_Medium` | SH020 Søster kommer |
-| 214 | `CAM_CU_01_Gutt_OTS` | SH021 CU Gutten ser henne (OTS) |
-| 220 | `CAM_02_Medium` | SH022 Spark, hodet ned i balja |
-| 230 | `CAM_CU_11_Plask` | SH0225 CU Plask, hodet først i balja |
-| 244 | `CAM_CU_02_Jente_Ler` | SH023 CU Søster ler av ham |
-| 264 | `CAM_02_Medium` | SH024 Han spretter opp |
-| 280 | `CAM_CU_03_Gutt` | SH025 CU Gutten full av maling |
-| 318 | `CAM_01_Wide` | SH030 Han kaster tilbake |
-| 335 | `CAM_CU_04_Jente_Treff` | SH031 CU Søster blir truffet, sint |
-| 366 | `CAM_CU_12_Aha` | SH0315 CU Søster ser spannet: aha! |
-| 390 | `CAM_01_Wide` | SH032 Hun henter spann |
-| 404 | `CAM_CU_03_Gutt` | SH033 CU Gutten: uh-oh |
-| 428 | `CAM_01_Wide` | SH034 Jakt ut av bildet |
-| 522 | `CAM_03_Dyp` | SH040 Jakt dypt i rommet |
-| 538 | `CAM_CU_08_Loep` | SH040b CU Søster raser forbi og river ned tårnet, han etter |
-| 574 | `CAM_03_Dyp` | SH040c Jakt frem, de sklir |
-| 632 | `CAM_CU_05_Liggende` | SH041 CU Ligger og ler sammen |
-| 672 | `CAM_03_Dyp` | SH042 Piruett og dunk |
-| 714 | `CAM_CU_06_Erting_OTS` | SH043 CU Søster erter ham (OTS) |
-| 726 | `CAM_04_Ende` | SH060 Jakt mot kamera, maling på linsa |
-| 806 | `CAM_CU_13_Oi` | SH0605 CU Gutten: oi! fniser |
-| 820 | `CAM_04_Ende` | SH0607 Søster tørker linsa og smiler |
-| 940 | `CAM_CU_07_Klem` | SH061 CU Klem, fniser til hverandre |
-| 982 | `CAM_04_Ende` | SH062 Varmt smil i kamera, mørkt, spot, de vinker |
-| 1092 | `CAM_CU_14_Hoppeklem` | SH063 CU Hoppeklem |
-| 1144 | `CAM_04_Ende` | SH064 Klem i spotlyset, kamera trekker seg bak |
-| 1208 | `CAM_15_Dans` | SH065 Falsk slutt i svart, så BAM: strobelys |
-| 1228 | `CAM_16_Dans_Gutt` | SH066 Guttens robotdans mot kamera (lav vinkel) |
-| 1276 | `CAM_17_Dans_Jente` | SH067 Søster snurrer frem mot kamera (lav vinkel) |
-| 1320 | `CAM_15_Dans` | SH068 De kommer helt frem og griper kameraet sammen |
+| 124 | `CAM_01_Wide` | SH012 Kaster maling rundt seg |
+| 166 | `CAM_CU_10_Handavtrykk` | SH013 Innklipp: håndavtrykk på gulvet |
+| 182 | `CAM_01_Wide` | SH014 Beundrer verket sitt |
+| 216 | `CAM_02_Medium` | SH020 Søster kommer |
+| 226 | `CAM_CU_01_Gutt_OTS` | SH021 CU Gutten ser henne (OTS) |
+| 248 | `CAM_02_Medium` | SH022 Spark, hodet ned i balja |
+| 258 | `CAM_CU_11_Plask` | SH0225 CU Plask, hodet først i balja |
+| 272 | `CAM_CU_02_Jente_Ler` | SH023 CU Søster ler av ham |
+| 310 | `CAM_02_Medium` | SH024 Han spretter opp |
+| 326 | `CAM_CU_03_Gutt` | SH025 CU Gutten full av maling |
+| 370 | `CAM_01_Wide` | SH030 Han kaster tilbake |
+| 387 | `CAM_CU_04_Jente_Treff` | SH031 CU Søster blir truffet, sint |
+| 432 | `CAM_CU_12_Aha` | SH0315 CU Søster ser spannet: aha! |
+| 460 | `CAM_01_Wide` | SH032 Hun henter spann |
+| 474 | `CAM_CU_03_Gutt` | SH033 CU Gutten: uh-oh |
+| 502 | `CAM_01_Wide` | SH034 Jakt ut av bildet |
+| 596 | `CAM_03_Dyp` | SH040 Jakt dypt i rommet |
+| 612 | `CAM_CU_08_Loep` | SH040b CU Søster raser forbi og river ned tårnet, han etter |
+| 648 | `CAM_03_Dyp` | SH040c Jakt frem, de sklir |
+| 706 | `CAM_CU_05_Liggende` | SH041 CU Ligger og ler sammen |
+| 752 | `CAM_03_Dyp` | SH042 Piruett og dunk |
+| 794 | `CAM_CU_06_Erting_OTS` | SH043 CU Søster erter ham (OTS) |
+| 822 | `CAM_04_Ende` | SH060 Jakt mot kamera, maling på linsa |
+| 902 | `CAM_CU_13_Oi` | SH0605 CU Gutten: oi! fniser |
+| 932 | `CAM_04_Ende` | SH0607 Søster tørker linsa og smiler |
+| 1058 | `CAM_CU_07_Klem` | SH061 CU Klem, fniser til hverandre |
+| 1120 | `CAM_04_Ende` | SH062 Varmt smil i kamera, mørkt, spot, de vinker |
+| 1230 | `CAM_CU_14_Hoppeklem` | SH063 CU Hoppeklem |
+| 1286 | `CAM_04_Ende` | SH064 Klem i spotlyset, kamera trekker seg bak |
+| 1350 | `CAM_15_Dans` | SH065 Falsk slutt i svart, så BAM: strobelys |
+| 1370 | `CAM_16_Dans_Gutt` | SH066 Guttens robotdans mot kamera (lav vinkel) |
+| 1418 | `CAM_17_Dans_Jente` | SH067 Søster snurrer frem mot kamera (lav vinkel) |
+| 1462 | `CAM_15_Dans` | SH068 De kommer helt frem og griper kameraet sammen |
 
 Ingen skudd er lenger enn ca. 6 sekunder, bortsett fra det siste der de holder kameraet.
 

@@ -540,8 +540,8 @@ def animate_boy(b):
         P(f, -0.8, 0.4, 0, -12 if i % 2 == 0 else 2, 90, 1.1 if i % 2 == 0 else 0.92)
     P(372, -0.8, 0.4, 0, 0, 90, 1.0)
     P(384, -0.8, 0.4, 0, -10, 90, 1.18)                # ser spannet: uh-oh
-    run(b, 388, 436, [(-0.8, 0.4), (-3.0, 0.5), (-8.5, 0.9)])  # flykter ut
-    teleport(b, 437, 470, (-8.5, 0.9, 0))
+    run(b, 388, 440, [(-0.8, 0.4), (-3.0, 0.4), (-13.0, 0.2)])  # flykter helt ut av bildet
+    teleport(b, 441, 470, (-13.0, 0.2, 0))
 
     # SH040: Kommer inn igjen fra høyre og jager henne dypt i rommet og frem
     P(470, 8.5, 0.5, 0, 0, -90)
@@ -625,8 +625,8 @@ def animate_girl(g):
     P(386, 2.95, 0.95, 0, 25, -90, 0.92)               # KAST (bommer)
     P(392, 2.95, 0.95, 0, 5, -90, 1.0)
     P(396, 2.95, 0.95, 0, 35, -90, 0.9)                # kaster hele spannet
-    run(g, 400, 448, [(2.95, 0.95), (1.5, 1.6), (-0.3, 1.9), (-3.0, 0.9), (-8.5, 0.9)])
-    teleport(g, 449, 456, (-8.5, 0.9, 0))
+    run(g, 400, 452, [(2.95, 0.95), (1.5, 1.6), (-0.3, 1.9), (-3.0, 1.3), (-13.0, 1.5)])  # egen bane
+    teleport(g, 453, 456, (-13.0, 1.5, 0))
 
     # SH040: Kommer først inn fra høyre, løper dypt i rommet og frem
     P(456, 8.5, 0.5, 0, 0, -90)
@@ -767,9 +767,9 @@ def build_paint_marks(coll, pm):
     splash("Sprut_Skli_Jente", coll, rainbow, (-0.7, -1.9, 0.1), 562, toward_x=1, count=8, seed=49)
     splash("Sprut_Skli_Gutt", coll, rainbow[2:] + rainbow[:2], (-0.05, -2.0, 0.1), 578, toward_x=1, count=8, seed=50)
     # Fotavtrykk: gutten drypper maling etter dukkingen, hun etter å ha tråkket i søl
-    footprints("Spor_Gutt_Flukt", coll, coat, [(-0.8, 0.4), (-3.0, 0.5), (-8.5, 0.9)], 388, 436)
+    footprints("Spor_Gutt_Flukt", coll, coat, [(-0.8, 0.4), (-3.0, 0.4), (-13.0, 0.2)], 388, 440)
     footprints("Spor_Jente_Jakt", coll, [pm["Rosa"]],
-               [(2.95, 0.95), (1.5, 1.6), (-0.3, 1.9), (-3.0, 0.9), (-8.5, 0.9)], 400, 448)
+               [(2.95, 0.95), (1.5, 1.6), (-0.3, 1.9), (-3.0, 1.3), (-13.0, 1.5)], 400, 452)
     deep = [(8.5, 0.5), (4.5, 3.0), (1.0, 5.0), (-2.5, 5.0), (-3.8, 2.5), (-2.5, 0.0)]
     footprints("Spor_Jente_Dyp", coll, [pm["Rosa"], pm["Himmelblaa"]], deep + [(-0.8, -1.7)], 460, 560,
                from_frame=514)
@@ -1556,14 +1556,20 @@ def apply_cuts():
 # Pusterom: (frame etter CUTS, antall frames). Alt fryses og holdes ved frame,
 # og figurene puster litt mens de står. Alt etterpå skyves bakover.
 HOLDS = [
-    (90, 18),     # han ser ned i regnbuemalingen og jubler
-    (160, 18),    # står og beundrer verket sitt før søster kommer
-    (262, 20),    # dryppende av maling, stirrer på henne før han slår tilbake
-    (312, 14),    # søster stopper opp når hun får øye på spannet
-    (340, 12),    # «uh-oh», han fryser
-    (572, 16),    # de ligger og puster ut etter latteren
-    (748, 14),    # søster puster lettet ut etter at linsa er tørket
-    (984, 14),    # hun ser på broren og får en idé før hoppeklemmen
+    (90, 24),     # han ser ned i regnbuemalingen og jubler
+    (160, 24),    # står og beundrer verket sitt før søster kommer
+    (180, 16),    # han ser søster komme (over skulderen hennes)
+    (214, 18),    # søster ler av ham, han sitter fast i balja
+    (262, 26),    # dryppende av maling, stirrer på henne før han slår tilbake
+    (290, 14),    # søster er truffet: sjokk, så sinne
+    (312, 18),    # søster stopper opp når hun får øye på spannet
+    (340, 16),    # «uh-oh», han fryser
+    (572, 22),    # de ligger og puster ut etter latteren
+    (620, 16),    # søster erter ham, han ser på henne
+    (712, 16),    # gutten: «oi!», fniser
+    (748, 20),    # søster puster lettet ut etter at linsa er tørket
+    (840, 20),    # klemmen: de fniser og ser på hverandre
+    (984, 18),    # hun ser på broren og får en idé før hoppeklemmen
 ]
 END_HOLD = 24     # siste bilde står litt før det er slutt
 
