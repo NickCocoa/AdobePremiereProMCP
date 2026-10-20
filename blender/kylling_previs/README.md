@@ -41,7 +41,7 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 - Rommet blir gradvis mer malt. Det kommer flekker rundt hvert søl (kast, balja, risting, treff, tårnet, skliingen), og fargede fotavtrykk etter dem når de løper. Gutten drypper turkis og lilla etter dukkingen, og søster tråkker rosa. Dette lages i `build_paint_marks()`.
 - Malingen er i lyse, lekne farger: rosa, turkis, gul, lime, lilla, oransje og himmelblå. Hvert kast har sin egen farge, håndavtrykkene går i regnbuerekkefølge, og gutten blir dekket av flere farger når han dukkes i balja.
 
-## Handling (24 fps, 1566 frames ≈ 65 sek)
+## Handling (24 fps, 1580 frames ≈ 66 sek)
 
 | Frames | Del | Hva skjer |
 |--------|-----|-----------|
@@ -49,10 +49,10 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 | 216–369 | Søster kommer | Han ser søster komme. Hun sparker ham, og han havner med hodet først i balja. Hun ler godt av ham, og han spretter opp full av maling, rister seg og blir stående og stirre på henne. |
 | 370–595 | Malingskamp | Han kaster på henne. Hun får sjokk og blir sint, ser spannet («aha!»), kaster og bommer. Han fryser («uh-oh»), og hun jager ham. Begge løper helt ut av bildet, kameraet panorerer raskt til høyre, og de kommer inn igjen. |
 | 596–821 | Jakten dypt i rommet | De løper dypt inn i rommet. Hun river ned tårnet. Begge sklir i den gule dammen og ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
-| 822–1163 | Linsa og klemmen | Hun løper mot kamera og dukker, og malingen hans treffer linsa. Gutten sier «oi!» og fniser. Hun tørker linsa, puster lettet ut og smiler. Han klemmer henne, de fniser sammen og gir et varmt smil i kamera. |
-| 1164–1299 | Leken | Hun får en idé og hopper opp på broren (f1172). Han rister henne av seg, og hun flyr av og ler. Han lader opp og hopper på henne (f1244), men hun dukker unna, og han går pladask med nesa i gulvet (f1252). Hun ler så hun rister (sett fra gulvet). |
-| 1300–1383 | Fest | Hun begynner å danse. Lyset i rommet dempes, og strobelys i fire farger starter. Han ruller over på ryggen og ligger og nikker i takt, med ansiktet mot oss (nærbilde), og så slenger han seg opp og danser også (f1356). |
-| 1384–1566 | Slutten | Én og én danser de mot kamera med hvert sitt lave nærbilde: først gutten med robotdans, så søster som snurrer. Til slutt kommer begge helt frem og griper kameraet sammen (f1494). Strobelysene slukker, rommet blir lyst og varmt igjen, og de smiler rett inn i linsa. Slutt. |
+| 822–1177 | Linsa og klemmen | Hun løper mot kamera og dukker, og malingen hans treffer linsa. Gutten sier «oi!» og fniser. Hun tørker linsa, puster lettet ut og smiler. Han løper inn i bildet fra høyre og klemmer henne, de fniser sammen og gir et varmt smil i kamera. |
+| 1178–1313 | Leken | Hun får en idé og hopper opp på broren (f1186). Han rister henne av seg, og hun flyr av og ler. Han lader opp og hopper på henne (f1258), men hun dukker unna, og han går pladask med nesa i gulvet (f1266). Hun ler så hun rister (sett fra gulvet). |
+| 1314–1397 | Fest | Hun begynner å danse. Lyset i rommet dempes, og strobelys i fire farger starter. Han ruller over på ryggen og ligger og nikker i takt, med ansiktet mot oss (nærbilde), og så slenger han seg opp og danser også (f1370). |
+| 1398–1580 | Slutten | Én og én danser de mot kamera med hvert sitt lave nærbilde: først gutten med robotdans, så søster som snurrer. Til slutt kommer begge helt frem og griper kameraet sammen (f1508). Strobelysene slukker, rommet blir lyst og varmt igjen, og de smiler rett inn i linsa. Slutt. |
 
 **Pusterom og reaksjoner.** 16 pauser på 0,4–1,1 sekunder gir tid til reaksjonene og relasjonen mellom dem. Figurene puster mens de står:
 1. Han ser ned i regnbuemalingen.
@@ -122,17 +122,17 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 | 822 | `CAM_04_Ende` | SH060 Jakt mot kamera, maling på linsa |
 | 902 | `CAM_CU_13_Oi` | SH0605 CU Gutten: oi! fniser |
 | 932 | `CAM_04_Ende` | SH0607 Søster tørker linsa og smiler |
-| 1058 | `CAM_CU_07_Klem` | SH061 CU Klem, fniser til hverandre |
-| 1120 | `CAM_04_Ende` | SH062 Varmt smil i kamera |
-| 1162 | `CAM_CU_14_Hoppeklem` | SH063 CU Hoppeklem, han rister henne av seg |
-| 1234 | `CAM_18_Pladask` | SH064 Han hopper på henne, hun dukker, pladask |
-| 1270 | `CAM_CU_19_Fra_Gulvet` | SH065 Hun ler av ham (fra gulvet ved hodet hans) |
-| 1300 | `CAM_20_Fest` | SH066 Hun begynner å danse, lyset dempes, strobelys |
-| 1318 | `CAM_CU_21_Nikker` | SH067 CU Han ligger på ryggen og nikker i takt |
-| 1346 | `CAM_20_Fest` | SH068 Han slenger seg opp og danser |
-| 1384 | `CAM_16_Dans_Gutt` | SH070 Guttens robotdans mot kamera (lav vinkel) |
-| 1432 | `CAM_17_Dans_Jente` | SH071 Søster snurrer frem mot kamera (lav vinkel) |
-| 1476 | `CAM_15_Dans` | SH072 De kommer helt frem og griper kameraet, rommet blir lyst |
+| 1072 | `CAM_CU_07_Klem` | SH061 CU Klem, fniser til hverandre |
+| 1134 | `CAM_04_Ende` | SH062 Varmt smil i kamera |
+| 1176 | `CAM_CU_14_Hoppeklem` | SH063 CU Hoppeklem, han rister henne av seg |
+| 1248 | `CAM_18_Pladask` | SH064 Han hopper på henne, hun dukker, pladask |
+| 1284 | `CAM_CU_19_Fra_Gulvet` | SH065 Hun ler av ham (fra gulvet ved hodet hans) |
+| 1314 | `CAM_20_Fest` | SH066 Hun begynner å danse, lyset dempes, strobelys |
+| 1332 | `CAM_CU_21_Nikker` | SH067 CU Han ligger på ryggen og nikker i takt |
+| 1360 | `CAM_20_Fest` | SH068 Han slenger seg opp og danser |
+| 1398 | `CAM_16_Dans_Gutt` | SH070 Guttens robotdans mot kamera (lav vinkel) |
+| 1446 | `CAM_17_Dans_Jente` | SH071 Søster snurrer frem mot kamera (lav vinkel) |
+| 1490 | `CAM_15_Dans` | SH072 De kommer helt frem og griper kameraet, rommet blir lyst |
 
 Ingen skudd er lenger enn ca. 6 sekunder, bortsett fra det siste der de holder kameraet.
 

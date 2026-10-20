@@ -643,10 +643,10 @@ def animate_boy(b):
     P(752, 0.95, 0.4, 0, 12, -7, 0.9)                  # holder seg for munnen
     for i, f in enumerate(range(756, 767, 4)):         # fniser
         P(f, 0.95, 0.4, 0, -8 if i % 2 == 0 else 4, -7, 1.08 if i % 2 == 0 else 0.94)
-    teleport(b, 767, 850, (4.5, -4.6, 0))              # ut av bildet bak malingen
+    teleport(b, 767, 836, (7.5, -4.6, 0))              # godt utenfor bildet til høyre
 
     # Løper inn og klemmer søsteren, smiler i kamera
-    run(b, 850, 866, [(4.5, -4.6), (0.55, -5.0)], lean=18)
+    run(b, 836, 868, [(7.5, -4.6), (0.55, -5.0)], lean=18)  # synlig løp inn i bildet
     P(870, 0.53, -5.0, 0, 10, -60, 0.88, ry=-7)        # KLEM (dunker inn i henne)
     P(876, 0.55, -5.0, 0, 0, -45, 1.04, ry=-5)
     P(884, 0.55, -5.0, 0, 0, -45, 1.0, ry=-5)
@@ -723,8 +723,14 @@ def animate_girl(g):
     P(738, -0.05, -5.0, 0, 25, 30, 0.6)                # DUKKER
     P(742, 0.0, -5.2, 0, 30, 20, 0.55)
     P(746, 0.0, -5.2, 0, 30, 20, 0.55)
+    P(752, -0.6, -5.5, 0.12, 0, 0, 1.06)               # småhopper ut til siden bak malingen
+    P(756, -1.2, -5.8, 0, 0, 0, 0.92)
+    P(760, -1.8, -6.0, 0.12, 0, 0, 1.06)
     P(764, -2.2, -6.1, 0, 0, 0, 1.0)                   # skjult bak malingen
     P(767, -2.2, -6.1, 0, 0, 0, 1.0)
+    P(770, -1.6, -6.1, 0.14, 0, 0, 1.08)               # småhopper sidelengs inn i bildet
+    P(772, -1.2, -6.1, 0, 0, 0, 0.92)
+    P(775, -0.6, -6.1, 0.12, 0, 0, 1.06)
     P(778, 0.0, -6.1, 0.05, 10, 0, 1.05)               # TØRKER linsa
     P(786, -0.3, -5.0, 0, 0, 0, 1.0)
     P(792, -0.3, -5.0, 0, -6, 0, 1.1)                  # puh! (lettet)
@@ -734,8 +740,8 @@ def animate_girl(g):
     P(822, -0.3, -5.0, 0.25, -5, 0, 1.15)              # glad hopp
     P(828, -0.3, -5.0, 0, 0, 0, 0.88)
     P(834, -0.3, -5.0, 0, 0, 0, 1.02)
-    P(850, -0.3, -5.0, 0, 0, 0, 1.0)
-    P(862, -0.3, -5.0, 0, 0, 25, 1.04)                 # hører ham komme
+    P(846, -0.3, -5.0, 0, 0, 0, 1.0)
+    P(852, -0.3, -5.0, 0, 0, 25, 1.04)                 # hører ham komme
     P(870, -0.45, -5.0, 0, -8, 40, 0.9, ry=7)         # KLEM
     P(876, -0.42, -5.0, 0, 0, 40, 1.04, ry=5)
     P(884, -0.42, -5.0, 0, 0, 35, 1.0, ry=5)
@@ -831,7 +837,7 @@ def animate_girl_arms(g):
         (764, "heng", "heng"), (768, "heng", (95, 170, -40)),        # tørker linsa
         (778, "heng", (95, 170, 40)), (786, "heng", "heng"),
         (792, "heng", "ansikt"), (800, "heng", "heng"),              # puh!
-        (862, "heng", "heng"), (870, "heng", "klem"), (966, "heng", "klem"),
+        (852, "heng", "heng"), (870, "heng", "klem"), (966, "heng", "klem"),
     ]
     arm_beats(g, beats)
 
@@ -1545,7 +1551,7 @@ def build_cameras(coll):
         (792, "Uttrykk J: lettet, puh!"),
         (800, "Uttrykk J: lurt, fornøyd blikk i kamera"),
         (810, "Uttrykk J: stort smil"),
-        (862, "Uttrykk J: overrasket, hører ham"),
+        (852, "Uttrykk J: overrasket, hører ham"),
         (870, "Uttrykk G+J: klem, latter"),
         (892, "Uttrykk G+J: smiler i kamera"),
         (910, "Uttrykk G+J: fniser, ser på hverandre"),
@@ -1581,7 +1587,6 @@ CUTS = [
     (172, 190),   # halvparten av malingen med hendene
     (199, 211),   # stolt hopp
     (814, 832),   # søsters glade hopp etter linsa
-    (836, 850),   # venting før gutten kommer
 ]
 
 
@@ -1658,10 +1663,10 @@ HOLDS = [
     (620, 16),    # søster erter ham, han ser på henne
     (712, 16),    # gutten: «oi!», fniser
     (748, 20),    # søster puster lettet ut etter at linsa er tørket
-    (840, 20),    # klemmen: de fniser og ser på hverandre
-    (936, 12),    # hun klemmer ham, han ser lurt opp
-    (992, 14),    # pladask: stille et øyeblikk
-    (1060, 10),   # han ligger og får en idé før han slenger seg opp
+    (854, 20),    # klemmen: de fniser og ser på hverandre
+    (950, 12),    # hun klemmer ham, han ser lurt opp
+    (1006, 14),    # pladask: stille et øyeblikk
+    (1074, 10),   # han ligger og får en idé før han slenger seg opp
 ]
 END_HOLD = 24     # siste bilde står litt før det er slutt
 
