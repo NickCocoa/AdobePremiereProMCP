@@ -1840,6 +1840,151 @@ def build_set_dressing(coll, pm, metal):
         tube.rotation_euler.z = math.radians(rz)
 
 
+def floor_z(y):
+    """Gulvhøyden i cycloramaen (flatt til y=4, så bøyer det seg opp mot bakveggen)."""
+    return 0.0 if y <= 4.0 else 3.0 - math.sqrt(max(0.0, 9.0 - (y - 4.0) ** 2))
+
+
+def build_furniture(coll):
+    """Planter og møbler i en ren, enkel stil (som i Pixars lampeintro): avrundede
+    grunnformer, matte materialer, få varme farger og god luft rundt hver ting."""
+    wood = material("M_Lys_Tre", (0.55, 0.36, 0.20), rough=0.6)
+    cream = material("M_Krem", (0.86, 0.82, 0.76), rough=0.7)
+    clay = material("M_Terrakotta", (0.62, 0.24, 0.11), rough=0.75)
+    leaf = [material("M_Blad_Mork", (0.10, 0.32, 0.08), rough=0.55),
+            material("M_Blad_Lys", (0.22, 0.50, 0.12), rough=0.55)]
+    teal = material("M_Dempet_Turkis", (0.10, 0.35, 0.38), rough=0.65)
+    mustard = material("M_Sennep", (0.80, 0.52, 0.10), rough=0.7)
+    glow = material("M_Lampeskjerm_Lys", (1.0, 0.82, 0.55), rough=0.5, emission=4.0)
+
+    def ell(name, center, radii, mat, rot=(0, 0, 0), parent=None):
+        bm = bmesh.new()
+        ellipsoid_bm(bm, (0.0, *radii), segs=(24, 14))
+        ob = mesh_object(name, bm, coll, [mat])
+        smooth(ob)
+        ob.parent = parent
+        ob.location = center
+        ob.rotation_euler = [math.radians(a) for a in rot]
+        return ob
+
+    def cyl(name, center, r1, r2, h, mat, parent=None, segs=32):
+        bm = bmesh.new()
+        bmesh.ops.create_cone(bm, cap_ends=True, segments=segs, radius1=r1, radius2=r2, depth=h)
+        bmesh.ops.translate(bm, vec=(0, 0, h / 2), verts=bm.verts)
+        ob = mesh_object(name, bm, coll, [mat])
+        smooth(ob)
+        ob.parent = parent
+        ob.location = center
+        bev = ob.modifiers.new("Bevel", "BEVEL")
+        bev.width, bev.segments, bev.limit_method = 0.012, 2, "ANGLE"
+        return ob
+
+    def box(name, center, size, mat, parent=None, rz=0):
+        bm = bmesh.new()
+        bmesh.ops.create_cube(bm, size=1.0)
+        ob = mesh_object(name, bm, coll, [mat])
+        ob.parent = parent
+        ob.scale, ob.location = size, center
+        ob.rotation_euler.z = math.radians(rz)
+        bev = ob.modifiers.new("Bevel", "BEVEL")
+        bev.width, bev.segments = 0.02, 3
+        return ob
+
+    def root(name, xy, rz=0.0):
+        ob = bpy.data.objects.new(name, None)
+        coll.objects.link(ob)
+        ob.location = (xy[0], xy[1], floor_z(xy[1]))
+        ob.rotation_euler.z = math.radians(rz)
+        return ob
+
+    def plant(name, xy, kind, size=1.0, seed=0):
+        r = root(name, xy, rz=seed * 37)
+        pot_h = 0.38 * size
+        cyl(f"{name}_Potte", (0, 0, 0), 0.17 * size, 0.23 * size, pot_h, clay, r)
+        cyl(f"{name}_Jord", (0, 0, pot_h - 0.03), 0.21 * size, 0.21 * size, 0.02,
+            material("M_Jord", (0.12, 0.07, 0.04), rough=0.9) if not bpy.data.materials.get("M_Jord")
+            else bpy.data.materials["M_Jord"], r)
+        rnd = random.Random(seed)
+        top = pot_h
+        if kind == "hoy":                              # høye, slanke blader i vifte
+            for k in range(9):
+                a = k * 40 + rnd.uniform(-10, 10)
+                tilt = rnd.uniform(8, 24)
+                h = rnd.uniform(0.45, 0.75) * size
+                lf = ell(f"{name}_Blad_{k}", (0, 0, 0), (0.06 * size, 0.018 * size, h), pick(leaf, k), parent=r)
+                lf.rotation_euler = (math.radians(tilt), 0, math.radians(a))
+                lf.location = Vector((0, 0, top)) + lf.rotation_euler.to_matrix() @ Vector((0, 0, h * 0.9))
+        elif kind == "busk":                           # rund, myk busk av kuler
+            for k, (x, y, z, rr) in enumerate(((0, 0, 0.32, 0.30), (-0.17, 0.05, 0.22, 0.2),
+                                               (0.16, -0.04, 0.24, 0.21), (0.03, 0.12, 0.5, 0.18))):
+                ell(f"{name}_Busk_{k}", (x * size, y * size, top + z * size), (rr * size,) * 3,
+                    pick(leaf, k), parent=r)
+        else:                                          # fiolinfiken: stamme og store runde blader
+            stem_h = 1.2 * size
+            cyl(f"{name}_Stamme", (0, 0, top), 0.025 * size, 0.018 * size, stem_h, wood, r, segs=12)
+            for k in range(8):
+                a = k * 137.5
+                z = top + stem_h * (0.45 + 0.07 * k)
+                d = Vector((math.cos(math.radians(a)), math.sin(math.radians(a)), 0))
+                lf = ell(f"{name}_Blad_{k}", tuple(d * 0.16 * size + Vector((0, 0, z))),
+                         (0.13 * size, 0.02 * size, 0.17 * size), pick(leaf, k), parent=r)
+                lf.rotation_euler = (math.radians(-35), 0, math.radians(a + 90))
+        return r
+
+    # Planter langs kantene og i bakgrunnen, utenfor løpeveiene
+    plant("Plante_Bak_Hoy", (-1.3, 6.2), "fiken", 1.1, seed=1)
+    plant("Plante_Bak_Venstre", (-5.9, 5.3), "hoy", 1.2, seed=2)
+    plant("Plante_Bak_Hoyre", (3.2, 5.9), "busk", 1.1, seed=3)
+    plant("Plante_Venstre", (-7.3, -1.4), "fiken", 1.0, seed=4)
+    plant("Plante_Hoyre", (7.6, 0.9), "hoy", 1.0, seed=5)
+    plant("Plante_Hoyre_Foran", (7.0, -3.4), "busk", 0.9, seed=6)
+    plant("Plante_Bord", (6.05, -1.25), "busk", 0.35, seed=7).location.z = 0.745
+
+    # Lav trebenk med en pute
+    bench = root("Benk", (5.3, 5.0), -20)
+    box("Benk_Sete", (0, 0, 0.42), (1.6, 0.42, 0.07), wood, bench)
+    for x in (-0.65, 0.65):
+        box(f"Benk_Bein_{x}", (x, 0, 0.2), (0.07, 0.36, 0.4), wood, bench)
+    ell("Benk_Pute", (-0.35, 0, 0.53), (0.26, 0.17, 0.07), mustard, parent=bench)
+
+    # Sittesekk
+    ell("Sittesekk", (0, 0, 0.3), (0.5, 0.48, 0.32), teal, parent=root("Sittesekk_Rot", (-7.2, 3.4)))
+
+    # Lav bokhylle med bøker
+    shelf = root("Bokhylle", (7.7, 3.2), -100)
+    box("Bokhylle_Kropp", (0, 0, 0.45), (1.3, 0.38, 0.9), cream, shelf)
+    box("Bokhylle_Hylle", (0, -0.02, 0.45), (1.22, 0.36, 0.03), wood, shelf)
+    rnd = random.Random(12)
+    x = -0.55
+    for k in range(9):
+        w = rnd.uniform(0.05, 0.09)
+        h = rnd.uniform(0.24, 0.34)
+        z0 = 0.47 if k < 5 else 0.06
+        if k == 5:
+            x = -0.55
+        box(f"Bok_{k}", (x + w / 2, -0.04, z0 + h / 2), (w, 0.26, h),
+            [teal, mustard, clay, cream][k % 4], shelf, rz=0 if k % 3 else 6)
+        x += w + 0.015
+
+    # Gulvlampe med varmt lys (praktisk lyskilde i rommet)
+    lamp = root("Gulvlampe", (-6.4, -3.4))
+    cyl("Gulvlampe_Fot", (0, 0, 0), 0.22, 0.2, 0.04, wood, lamp)
+    cyl("Gulvlampe_Stang", (0, 0, 0.04), 0.02, 0.02, 1.55, cream, lamp, segs=12)
+    cyl("Gulvlampe_Skjerm", (0, 0, 1.45), 0.32, 0.2, 0.36, glow, lamp)
+    ld = bpy.data.lights.new("Lys_Gulvlampe", "POINT")
+    ld.energy, ld.color, ld.shadow_soft_size = 60, (1.0, 0.78, 0.5), 0.3
+    lo = bpy.data.objects.new("Lys_Gulvlampe", ld)
+    coll.objects.link(lo)
+    lo.parent, lo.location = lamp, (0, 0, 1.55)
+
+    # Liten bordlampe med kuppelskjerm på bordet med pensler
+    desk = root("Bordlampe", (6.85, -1.35))
+    desk.location.z = 0.745
+    cyl("Bordlampe_Fot", (0, 0, 0), 0.09, 0.08, 0.03, cream, desk)
+    cyl("Bordlampe_Stang", (0, 0, 0.03), 0.012, 0.012, 0.3, cream, desk, segs=10)
+    ell("Bordlampe_Skjerm", (0, 0, 0.36), (0.12, 0.12, 0.08), glow, parent=desk)
+
+
 # --------------------------------------------------------------------------
 # Kamera og shots
 # --------------------------------------------------------------------------
@@ -2354,6 +2499,7 @@ def main():
     wing_drag(boy, girl)
     color_script(c_light)
     build_set_dressing(c_set, pm, metal)
+    build_furniture(c_set)
     setup_render()
     apply_cuts()
     apply_holds()

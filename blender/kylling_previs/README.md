@@ -47,6 +47,12 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
   - malingstuber på trekassa
 
   Alt står utenfor løpeveiene og gir dybde og skala bak handlingen.
+- **Planter og møbler** (`build_furniture()`), i samme rene og enkle stil som Pixars lampeintro: avrundede grunnformer, matte materialer, få varme farger (lyst tre, krem, terrakotta, grønt, sennep og dempet turkis) og god luft rundt hver ting.
+  - **Planter:** sju planter i terrakottapotter (høye bladplanter, runde busker og fiolinfiken), langs kantene, i bakgrunnen og på bordet.
+  - **Møbler:** en lav trebenk med pute, en sittesekk og en lav bokhylle med bøker.
+  - **Lamper:** en gulvlampe og en bordlampe med varmt lys. De gir en praktisk lyskilde som også lyser i festen.
+
+  Noen planter ligger i forgrunnen i følgeskuddet og løpe-nærbildet og gir dybde.
 - Rekvisitter: trekasse, en stor regnbuebalje midt på gulvet (én kile i hver farge), et gult og et rosa malingsspann.
 - Rommet blir gradvis mer malt. Det kommer flekker rundt hvert søl (kast, balja, risting, treff, tårnet, skliingen), og fargede fotavtrykk etter dem når de løper. Gutten drypper turkis og lilla etter dukkingen, og søster tråkker rosa. Dette lages i `build_paint_marks()`.
 - **Malingen bygger seg opp på figurene og blir værende:**
