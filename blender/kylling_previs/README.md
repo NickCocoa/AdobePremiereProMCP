@@ -30,6 +30,7 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 
 - Høy blokk på 0,7 × 0,5 × 1,7 m (bredde × dybde × høyde), så den leses som en person. Origo er i bunnen, så squash/stretch skjer fra gulvet. Mål endres i `CHAR_W`, `CHAR_D` og `CHAR_H` øverst i skriptet.
 - Forsiden (lokal −Y) er rød, så du alltid ser hvilken vei de ser. Også etter at gutten er dukket i balja, er forsiden hans rød med fargeflekker, for malingsdrakten dekker bare hode, sider og rygg.
+- Begge har enkle blokkarmer med flate hender i kroppsfarge gjennom hele sekvensen. Armene svinger når de løper, og brukes til å øse, kaste, peke, holde spannet, dukke, tørke linsa og klemme.
 - Navneskilt over hodet vises bare i viewport, ikke i render.
 
 ## Studio
@@ -50,7 +51,7 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 | 596–821 | Jakten dypt i rommet | De løper dypt inn i rommet. Hun river ned tårnet. Begge sklir i den gule dammen og ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
 | 822–1163 | Linsa og klemmen | Hun løper mot kamera og dukker, og malingen hans treffer linsa. Gutten sier «oi!» og fniser. Hun tørker linsa, puster lettet ut og smiler. Han klemmer henne, de fniser sammen og gir et varmt smil i kamera. |
 | 1164–1299 | Leken | Hun får en idé og hopper opp på broren (f1172). Han rister henne av seg, og hun flyr av og ler. Han lader opp og hopper på henne (f1244), men hun dukker unna, og han går pladask med nesa i gulvet (f1252). Hun ler så hun rister (sett fra gulvet). |
-| 1300–1383 | Fest | Hun begynner å danse. Lyset i rommet dempes, og strobelys i fire farger starter. Han ligger på gulvet og nikker i takt (nærbilde), og så slenger han seg opp og danser også (f1356). |
+| 1300–1383 | Fest | Hun begynner å danse. Lyset i rommet dempes, og strobelys i fire farger starter. Han ruller over på ryggen og ligger og nikker i takt, med ansiktet mot oss (nærbilde), og så slenger han seg opp og danser også (f1356). |
 | 1384–1566 | Slutten | Én og én danser de mot kamera med hvert sitt lave nærbilde: først gutten med robotdans, så søster som snurrer. Til slutt kommer begge helt frem og griper kameraet sammen (f1494). Strobelysene slukker, rommet blir lyst og varmt igjen, og de smiler rett inn i linsa. Slutt. |
 
 **Pusterom og reaksjoner.** 16 pauser på 0,4–1,1 sekunder gir tid til reaksjonene og relasjonen mellom dem. Figurene puster mens de står:
@@ -114,7 +115,7 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 | 502 | `CAM_01_Wide` | SH034 Jakt ut av bildet |
 | 596 | `CAM_03_Dyp` | SH040 Jakt dypt i rommet |
 | 612 | `CAM_CU_08_Loep` | SH040b CU Søster raser forbi og river ned tårnet, han etter |
-| 648 | `CAM_03_Dyp` | SH040c Jakt frem, de sklir |
+| 634 | `CAM_03_Dyp` | SH040c Jakt frem, de sklir |
 | 706 | `CAM_CU_05_Liggende` | SH041 CU Ligger og ler sammen |
 | 752 | `CAM_03_Dyp` | SH042 Piruett og dunk |
 | 794 | `CAM_CU_06_Erting_OTS` | SH043 CU Søster erter ham (OTS) |
@@ -127,7 +128,7 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 | 1234 | `CAM_18_Pladask` | SH064 Han hopper på henne, hun dukker, pladask |
 | 1270 | `CAM_CU_19_Fra_Gulvet` | SH065 Hun ler av ham (fra gulvet ved hodet hans) |
 | 1300 | `CAM_20_Fest` | SH066 Hun begynner å danse, lyset dempes, strobelys |
-| 1318 | `CAM_CU_21_Nikker` | SH067 CU Han ligger og nikker i takt |
+| 1318 | `CAM_CU_21_Nikker` | SH067 CU Han ligger på ryggen og nikker i takt |
 | 1346 | `CAM_20_Fest` | SH068 Han slenger seg opp og danser |
 | 1384 | `CAM_16_Dans_Gutt` | SH070 Guttens robotdans mot kamera (lav vinkel) |
 | 1432 | `CAM_17_Dans_Jente` | SH071 Søster snurrer frem mot kamera (lav vinkel) |
@@ -160,6 +161,7 @@ I tillegg ligger det markører som heter `Uttrykk …` (uten kamera). De angir h
   - `retning`: 90 = ser mot høyre, −90 = mot venstre, 0 = mot kamera.
   - `squash < 1` gir squash, `> 1` gir stretch.
   - `raw=True` bruker vinkelen udempet (salto, ligge på ryggen). `spin=True` gir hele piruetter.
+- **Armer:** `animate_boy_arms()` og `animate_girl_arms()` er lister med `(frame, venstre, høyre)`, der hver arm får en navngitt pose fra `ARM_POSES` (for eksempel `heng`, `jubel`, `kast`-posene `bak`/`fram_opp`, `dukk`, `klem`) eller egne vinkler `(rx, ry, rz)`. Armsvingen under løping legges inn automatisk av `run()`.
 - **Tempo:** `CUTS` i skriptet er en liste over tidsbiter som klippes ut. Alt etter et klipp flyttes frem automatisk, så du kan stramme eller løsne tempoet uten å flytte hver keyframe for hånd. Frame-tallene i animasjonskoden er de opprinnelige tallene, før klippene.
 - **Pusterom:** `HOLDS` i skriptet er en liste over pauser `(frame, lengde)` som legges inn etter klippene. Alt står stille og figurene puster litt, mens sprut som er i lufta får fly ferdig. `END_HOLD` lar siste bilde stå litt før slutt.
 - **Maling:** `build_paint_fx()` styrer klatter, dammer, håndavtrykk, malingsdrakten og malingen på linsa.

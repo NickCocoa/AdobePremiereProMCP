@@ -295,6 +295,66 @@ def build_character(name, label, body_color, coll, label_coll):
     return ob
 
 
+ARMS = {}  # figurnavn -> {-1: venstre arm, 1: høyre arm}
+
+
+def build_arms(ob, coll):
+    """To blokkarmer med flate hender i kroppsfarge, med hele sekvensen.
+    Origo i skulderen, armen peker opp (+Z) i hvilestilling uten rotasjon."""
+    arms = {}
+    for side in (-1, 1):
+        bm = bmesh.new()
+        bmesh.ops.create_cube(bm, size=1.0)
+        bmesh.ops.scale(bm, vec=(0.12, 0.12, 0.5), verts=bm.verts)
+        bmesh.ops.translate(bm, vec=(0, 0, 0.25), verts=bm.verts)
+        arm = mesh_object(f"{ob.name}_Arm_{'V' if side < 0 else 'H'}", bm, coll, [ob.data.materials[0]])
+        arm.parent = ob
+        arm.location = (side * (CHAR_W / 2 + 0.09), 0, 1.1)
+        bm = bmesh.new()
+        bmesh.ops.create_cube(bm, size=1.0)
+        bmesh.ops.scale(bm, vec=(0.22, 0.05, 0.2), verts=bm.verts)  # spredt hånd
+        hand = mesh_object(arm.name + "_Haand", bm, coll, [ob.data.materials[0]])
+        hand.parent = arm
+        hand.location = (0, 0, 0.58)
+        arms[side] = arm
+    ARMS[ob.name] = arms
+    return arms
+
+
+# Armposer som (rx, ry, rz) i grader for side s (-1 venstre, 1 høyre).
+# Fra hengende arm: +rx svinger fremover, ry løfter ut til siden.
+ARM_POSES = {
+    "heng": lambda s: (0, 170 * s, 0),
+    "ut": lambda s: (0, 95 * s, 0),          # rett ut til siden
+    "halvut": lambda s: (0, 135 * s, 0),
+    "jubel": lambda s: (0, 25 * s, 0),       # opp og ut
+    "fram_ned": lambda s: (45, 170 * s, 0),  # øser, maler på gulvet
+    "fram": lambda s: (90, 170 * s, 0),      # peker, holder spannet
+    "fram_opp": lambda s: (150, 170 * s, 0), # kaster
+    "bak": lambda s: (-110, 170 * s, 0),     # lader opp kastet
+    "ansikt": lambda s: (155, 160 * s, 0),   # hendene mot ansiktet
+    "dukk": lambda s: (170, 150 * s, 0),     # hendene over hodet
+    "hofte": lambda s: (-15, 140 * s, 0),
+    "mage": lambda s: (35, 175 * s, -20 * s),
+    "sint": lambda s: (-20, 165 * s, 0),
+    "klem": lambda s: (0, 100 * s, 40 * s),  # rundt ryggen på den andre
+}
+
+
+def arm_key(ob, f, left, right):
+    """Key begge armene til ob. left/right er navn i ARM_POSES eller (rx, ry, rz)."""
+    for side, p in ((-1, left), (1, right)):
+        arm = ARMS[ob.name][side]
+        rot = ARM_POSES[p](side) if isinstance(p, str) else p
+        arm.rotation_euler = [math.radians(a) for a in rot]
+        arm.keyframe_insert("rotation_euler", frame=f)
+
+
+def arm_beats(ob, beats):
+    for f, left, right in beats:
+        arm_key(ob, f, left, right)
+
+
 def build_bucket(name, coll, paint_mat, metal_mat, r1=0.19, r2=0.23, depth=0.36):
     """Malingsspann, origo midt i bunnen, åpning opp (+Z)."""
     bm = bmesh.new()
@@ -471,8 +531,11 @@ def run(ob, f0, f1, path, stride=6, lean=22, hop=0.16):
                 break
             d -= length
         up = i % 2 == 1 and i < n
-        pose(ob, round(f0 + (f1 - f0) * t), p.x, p.y, hop if up else 0.0,
-             lean, rz, 1.06 if up else 0.94)
+        f = round(f0 + (f1 - f0) * t)
+        pose(ob, f, p.x, p.y, hop if up else 0.0, lean, rz, 1.06 if up else 0.94)
+        if ob.name in ARMS:                            # armene svinger i takt med stegene
+            sw = 45 * math.cos(math.pi * i / 2)
+            arm_key(ob, f, (sw, -165, 0), (-sw, 165, 0))
 
 
 def animate_boy(b):
@@ -683,6 +746,94 @@ def animate_girl(g):
     P(946, -0.4, -5.0, 0, 0, 14, 0.93, ry=7)         # ekstra klem
     P(954, -0.42, -5.0, 0, 0, 12, 1.02, ry=5)
     P(966, -0.42, -5.0, 0, 0, 12, 1.0, ry=5)
+
+
+def animate_boy_arms(b):
+    """Armene til gutten gjennom historien (løpene keyes i run())."""
+    beats = [
+        (1, "heng", "heng"),
+        (50, "ut", "ut"), (54, "heng", "heng"),                     # bremser
+        (60, "jubel", "jubel"), (66, "ut", "ut"), (70, "heng", "heng"),  # piruett
+        (76, "fram_ned", "fram_ned"), (84, "fram_ned", "fram_ned"),  # titter nedi
+        (88, "jubel", "jubel"),                                      # «jippi!»
+    ]
+    for ft in (104, 122):                                            # øser og kaster
+        beats += [(ft - 10, "fram_ned", "fram_ned"), (ft - 5, "ut", "bak"),
+                  (ft, "heng", "fram_opp"), (ft + 4, "heng", "fram")]
+    beats += [(148, "heng", "heng"), (152, "fram_ned", "fram_ned")]
+    for i, f in enumerate(range(160, 196, 6)):                       # maler med hendene
+        beats.append((f, (60 if i % 2 else 25, -170, 0), (25 if i % 2 else 60, 170, 0)))
+    beats += [
+        (198, "heng", "heng"), (204, "jubel", "jubel"), (210, "heng", "heng"),
+        (216, "hofte", "hofte"), (222, "hofte", "hofte"),            # beundrer verket
+        (224, "ut", "ut"), (228, "ut", "ut"), (230, "jubel", "jubel"),  # SPARK
+    ]
+    for i, f in enumerate(range(236, 276, 4)):                       # spreller i balja
+        beats.append((f, "ut" if i % 2 else "jubel", "jubel" if i % 2 else "ut"))
+    beats += [(280, "jubel", "jubel"), (286, "ut", "ut"), (290, "heng", "heng")]
+    for i, f in enumerate(range(292, 304, 2)):                       # rister seg
+        beats.append((f, "ut" if i % 2 else "halvut", "halvut" if i % 2 else "ut"))
+    beats += [(304, "heng", "heng"),
+              (308, "fram_ned", "fram_ned"), (312, "ut", "bak"),     # kaster tilbake
+              (316, "heng", "fram_opp"), (322, "heng", "fram")]
+    for i, f in enumerate(range(328, 352, 4)):                       # holder seg på magen og ler
+        beats.append((f, "mage" if i % 2 else "heng", "mage" if i % 2 else "heng"))
+    beats += [(372, "heng", "heng"), (384, "ansikt", "ansikt")]     # uh-oh
+    beats += [
+        (470, "heng", "heng"),
+        (578, "jubel", "jubel"), (582, "ut", "ut"), (594, "ut", "ut"),  # sklir
+    ]
+    for i, f in enumerate(range(598, 618, 4)):                       # ligger og ler
+        beats.append((f, "ut" if i % 2 else "halvut", "ut" if i % 2 else "halvut"))
+    beats += [
+        (620, "jubel", "jubel"), (626, "heng", "heng"),
+        (640, "ut", "ut"), (646, "ut", "ut"), (650, "heng", "heng"),
+        (664, "hofte", "hofte"), (674, "hofte", "hofte"),            # blir ertet
+        (716, "fram_ned", "fram_ned"), (722, "fram_ned", "fram_ned"),
+        (726, "ut", "bak"), (730, "heng", "fram_opp"), (736, "heng", "fram"),
+        (742, "heng", "heng"), (746, "ansikt", "ansikt"),             # «oi!»
+        (766, "ansikt", "ansikt"),
+        (870, "klem", "heng"), (966, "klem", "heng"),                 # klemmen
+    ]
+    arm_beats(b, beats)
+
+
+def animate_girl_arms(g):
+    beats = [
+        (1, "heng", "heng"),
+        (224, "ut", "ut"), (227, "ut", "ut"), (230, "ut", "ut"),     # SPARK
+        (236, "heng", "heng"),
+    ]
+    for i, f in enumerate(range(242, 302, 5)):                       # peker og ler av ham
+        beats.append((f, "mage" if i % 2 else "heng", "fram" if i % 2 else (80, 170, 0)))
+    beats += [
+        (316, "heng", "heng"), (324, "ansikt", "ansikt"),            # ser klatten
+        (326, "ut", "ut"), (330, "ut", "ut"), (336, "heng", "heng"), (340, "heng", "heng"),
+    ]
+    for i, f in enumerate(range(343, 355, 3)):                       # sint stamping
+        beats.append((f, "sint" if i % 2 else "heng", "sint" if i % 2 else "heng"))
+    beats += [
+        (358, "heng", "jubel"),                                      # aha!
+        (370, "fram_ned", "fram_ned"), (374, (70, -170, 0), (70, 170, 0)),  # løfter spannet
+        (378, (70, -170, 0), (70, 170, 0)), (382, "fram_ned", "fram_ned"),
+        (386, "fram_opp", "fram_opp"), (392, (70, -170, 0), (70, 170, 0)),
+        (396, "fram_opp", "fram_opp"),                               # hele spannet
+        (456, "heng", "heng"),
+        (562, "jubel", "jubel"), (566, "ut", "ut"), (576, "ut", "ut"),  # sklir
+    ]
+    for i, f in enumerate(range(586, 618, 4)):                       # ligger og ler
+        beats.append((f, "ut" if i % 2 else "halvut", "ut" if i % 2 else "halvut"))
+    beats += [
+        (620, "jubel", "jubel"), (626, "heng", "heng"),
+        (640, "ut", "ut"), (646, "ut", "ut"), (650, "heng", "heng"), (660, "heng", "heng"),
+        (664, (160, -150, 0), (160, 150, 0)), (668, (160, -120, 0), (160, 120, 0)),  # erter
+        (735, "ut", "ut"), (738, "dukk", "dukk"), (746, "dukk", "dukk"),  # dukker
+        (764, "heng", "heng"), (768, "heng", (95, 170, -40)),        # tørker linsa
+        (778, "heng", (95, 170, 40)), (786, "heng", "heng"),
+        (792, "heng", "ansikt"), (800, "heng", "heng"),              # puh!
+        (862, "heng", "heng"), (870, "heng", "klem"), (966, "heng", "klem"),
+    ]
+    arm_beats(g, beats)
 
 
 def animate_props(tub, bucket_g, bucket_b):
@@ -1046,7 +1197,7 @@ def build_cinematic(cams, boy, girl, coll):
         aim(cams[key_], a)
         dof(cams[key_], mid, f)
     push(cams["medium"], [(212, 228, 0.3), (228, 305, 0.6)])
-    push(cams["deep"], [(484, 500, 0.4), (536, 660, 1.2)])
+    push(cams["deep"], [(484, 500, 0.4), (522, 660, 1.2)])
 
     # Nærbilder: følger hodet, grunn dybdeskarphet, liten innkjøring
     cu = [
@@ -1057,7 +1208,7 @@ def build_cinematic(cams, boy, girl, coll):
         ("cu_lying", mid, [(594, 618, 0.4)]),
         ("cu_tease", head_g, [(660, 672, 0.2)]),
         ("cu_hug", mid, [(904, 946, 0.4)]),
-        ("cu_run", mid, [(500, 536, 0.3)]),  # f/2.8 under, raske bevegelser
+        ("cu_run", mid, [(500, 522, 0.3)]),  # f/2.8 under, raske bevegelser
         ("cu_tub", head_b, [(76, 100, 0.2)]),
         ("cu_splash", head_b, [(238, 252, 0.2)]),
         ("cu_aha", head_g, [(354, 364, 0.15)]),
@@ -1097,28 +1248,6 @@ def build_cinematic(cams, boy, girl, coll):
 # Slutten: lek, pladask, fest med strobelys, dans mot kamera, grep om kameraet
 # --------------------------------------------------------------------------
 
-def dance_arms(ob, coll, f_on):
-    """To armer med flate hender, i kroppsfarge. Origo i skulderen, peker opp."""
-    arms = {}
-    for side in (-1, 1):
-        bm = bmesh.new()
-        bmesh.ops.create_cube(bm, size=1.0)
-        bmesh.ops.scale(bm, vec=(0.12, 0.12, 0.5), verts=bm.verts)
-        bmesh.ops.translate(bm, vec=(0, 0, 0.25), verts=bm.verts)
-        arm = mesh_object(f"{ob.name}_Dansearm_{'V' if side < 0 else 'H'}", bm, coll, [ob.data.materials[0]])
-        arm.parent = ob
-        arm.location = (side * (CHAR_W / 2 + 0.07), 0, 1.1)
-        bm = bmesh.new()
-        bmesh.ops.create_cube(bm, size=1.0)
-        bmesh.ops.scale(bm, vec=(0.22, 0.05, 0.2), verts=bm.verts)  # spredt hånd
-        hand = mesh_object(arm.name + "_Haand", bm, coll, [ob.data.materials[0]])
-        hand.parent = arm
-        hand.location = (0, 0, 0.58)
-        pop(arm, f_on, overshoot=1.2)
-        arms[side] = arm
-    return arms
-
-
 def key_arm(arm, f, ry, rx=0.0):
     """ry: sidelengs (>0 mot +X), rx: fremover mot kamera (>0)."""
     arm.rotation_euler = (math.radians(rx), math.radians(ry), 0)
@@ -1145,18 +1274,19 @@ def build_ending(boy, girl, coll_char, coll_light, cam):
     J = PLAY
 
     # --- Hoppeklem: hun får en idé og hopper opp på broren
+    # Hun henger på siden av ham (ikke oppå), begge vipper bort fra hoppet
     G(J, -0.45, -5.0, 0, -10, 45, 0.8, ry=0)
     B(J + 6, 0.55, -5.0, 0, 0, -30, 1.05)
-    G(J + 8, -0.15, -5.0, 0.75, 15, 70, 1.18, ry=15)              # HOPPER
-    G(J + 13, 0.02, -5.0, 0.4, 10, 70, 0.9, ry=22)                # lander på ham
-    B(J + 13, 0.68, -5.0, 0, -12, -60, 0.82, ry=-18)
-    G(J + 18, 0.05, -5.0, 0.32, 5, 65, 1.03, ry=20)
-    B(J + 18, 0.72, -5.0, 0, -6, -55, 0.95, ry=-20)
+    G(J + 8, -0.25, -5.0, 0.7, 0, 60, 1.18, ry=8)                 # HOPPER
+    G(J + 13, -0.17, -5.0, 0.35, 0, 60, 0.9, ry=10)               # henger på ham
+    B(J + 13, 0.72, -5.0, 0, -8, -50, 0.85, ry=10)
+    G(J + 18, -0.15, -5.0, 0.3, 0, 55, 1.03, ry=10)
+    B(J + 18, 0.75, -5.0, 0, -4, -45, 0.95, ry=10)
     # --- Han rister henne av seg
     for k, f in enumerate(range(J + 24, J + 46, 3)):
         sgn = 1 if k % 2 else -1
-        B(f, 0.7, -5.0, 0.05 if k % 2 else 0, 0, -60 + 25 * sgn, 1.0, ry=-15 * sgn)
-        G(f, 0.04 + 0.04 * sgn, -5.0, 0.32 + 0.05 * (k % 2), 0, 65 + 25 * sgn, 1.0, ry=20 + 15 * sgn)
+        B(f, 0.75, -5.0, 0.05 if k % 2 else 0, 0, -50 + 20 * sgn, 1.0, ry=10 + 8 * sgn)
+        G(f, -0.15 + 0.03 * sgn, -5.0, 0.3 + 0.05 * (k % 2), 0, 55 + 20 * sgn, 1.0, ry=10 + 8 * sgn)
     G(J + 50, -0.6, -5.1, 0.6, -20, 40, 1.1, ry=-10)              # flyr av
     G(J + 55, -0.95, -5.2, 0, -25, 30, 0.8)                       # lander, vakler
     G(J + 60, -0.95, -5.2, 0, 0, 20, 1.0)
@@ -1173,22 +1303,48 @@ def build_ending(boy, girl, coll_char, coll_light, cam):
     # --- Hun ler av ham
     for k, f in enumerate(range(J + 80, PARTY, 5)):
         G(f, -1.3, -5.9, 0, -15 if k % 2 == 0 else 0, 120, 1.1 if k % 2 == 0 else 0.92)
+    # --- Han ruller over på ryggen (rull rundt lengdeaksen), så ansiktet ses
+    B(PARTY - 10, -0.45, -5.0, 0.25, 90, -90, 1.0, raw=True)
+    B(PARTY - 5, -0.45, -5.0, 0.3, 90, -90, 1.0, raw=True, ry=100)
+    B(PARTY, -0.45, -5.0, 0.25, 90, -90, 1.0, raw=True, ry=180)
 
-    # --- Fest: hun begynner å danse, han ligger og nikker i takt
-    ag = dance_arms(girl, coll_char, PARTY)
+    ab, ag = ARMS[boy.name], ARMS[girl.name]
+    arm_beats(girl, [
+        (J, "heng", "heng"), (J + 4, "fram_ned", "fram_ned"),       # får en idé
+        (J + 8, "jubel", "jubel"), (J + 13, "jubel", "klem"), (J + 18, "jubel", "klem"),
+    ] + [(f, "jubel" if k % 2 else "ut", "klem") for k, f in enumerate(range(J + 24, J + 46, 3))] + [
+        (J + 50, "ut", "ut"), (J + 55, "ut", "ut"), (J + 60, "heng", "heng"),
+        (J + 66, "dukk", "dukk"), (J + 70, "heng", "heng"),
+    ] + [(f, "mage" if k % 2 else "heng", "fram" if k % 2 == 0 else (75, 170, 0))
+         for k, f in enumerate(range(J + 80, PARTY - 4, 5))])        # peker og ler
+    arm_beats(boy, [
+        (J, "klem", "heng"), (J + 6, "heng", "heng"),
+        (J + 13, "ut", "ut"), (J + 18, "halvut", "halvut"),
+    ] + [(f, "ut" if k % 2 else "halvut", "halvut" if k % 2 else "ut")
+         for k, f in enumerate(range(J + 24, J + 46, 3))] + [
+        (J + 50, "heng", "fram"), (J + 60, "heng", "heng"),          # børster seg av
+        (J + 64, "bak", "bak"), (J + 68, "fram_opp", "fram_opp"),   # superhelt-hopp
+        (J + 73, (0, -10, 0), (0, 10, 0)), (J + 76, (0, -10, 0), (0, 10, 0)),
+        (J + 80, (0, -75, 0), (0, 75, 0)), (PARTY - 10, (0, -75, 0), (0, 75, 0)),  # sjøstjerne
+    ])
+
+    # --- Fest: hun begynner å danse mot kameraet, han ligger på ryggen og nikker i takt
     rzg = _last_rz[girl.name]
+    rzg += (30 - rzg + 180) % 360 - 180                # mot festkameraet
     for k, f in enumerate(range(PARTY, PARTY + 40, 6)):
-        if k % 4 in (2, 3):
-            rzg += 180
-        G(f, -1.3 + (0.1 if k % 2 else -0.1), -5.9, 0.08 if k % 2 else 0, 0, rzg,
+        if k % 4 == 3:
+            rzg += 360                                 # rask piruett, forsiden ses nesten hele tiden
+        G(f, -1.3 + (0.1 if k % 2 else -0.1), -5.9, 0.08 if k % 2 else 0, 0, rzg + (12 if k % 2 else -12),
           1.05 if k % 2 else 0.95, ry=10 if k % 2 else -10, spin=True)
         key_arm(ag[-1], f, -20 if k % 2 else -50)
         key_arm(ag[1], f, 20 if k % 2 else 50)
-        B(f, -0.45, -5.0, 0.25 + (0.03 if k % 2 else 0), 90 - (8 if k % 2 else 0), -90, 1.0, raw=True)
+        B(f, -0.45, -5.0, 0.25 + (0.04 if k % 2 else 0), 90 + (10 if k % 2 else 0), -90, 1.0,
+          raw=True, ry=180)                            # nikker: hodet løftes fra gulvet
+        key_arm(ab[-1], f, -75 if k % 2 else -95)      # tromming i gulvet
+        key_arm(ab[1], f, 95 if k % 2 else 75)
     # --- Han slenger seg opp og danser
     UP = PARTY + 40
-    ab = dance_arms(boy, coll_char, UP + 4)
-    B(UP, -0.45, -5.0, 0.2, 90, -90, 0.9, raw=True)
+    B(UP, -0.45, -5.0, 0.2, 90, -90, 0.9, raw=True, ry=180)
     B(UP + 6, -0.6, -5.0, 0.9, 0, -20, 1.2, raw=True)              # SLENGER SEG OPP
     B(UP + 12, -0.7, -5.0, 0, 0, 0, 0.8)
     for arms in (ab,):
@@ -1241,8 +1397,8 @@ def build_ending(boy, girl, coll_char, coll_light, cam):
     steps = list(range(solo_g, come, 6))
     for k, f in enumerate(steps):
         y = -5.1 - 2.1 * (k + 1) / len(steps)
-        if k % 4 in (2, 3):
-            rzg += 180
+        if k % 4 == 3:
+            rzg += 360                                 # rask piruett, ellers forsiden mot kamera
         G(f, -0.65 if k % 2 else -0.35, y, 0.1 if k % 2 else 0, 0, rzg, 1.05 if k % 2 else 0.95,
           ry=10 if k % 2 else -10, spin=True)
         key_arm(ag[-1], f, -20 if k % 2 else -50)
@@ -1316,7 +1472,7 @@ def build_cameras(coll):
         "cu_lying": cam("CAM_CU_05_Liggende", (-1.0, -2.7, 2.6), (-1.0, -1.85, 0.3), 32),
         "cu_tease": cam("CAM_CU_06_Erting_OTS", (1.6, -3.6, 1.6), (-0.4, -2.9, 1.3), 34),
         "cu_hug": cam("CAM_CU_07_Klem", (0.6, -6.6, 1.55), (0.06, -5.0, 1.45), 35),
-        "cu_run": cam("CAM_CU_08_Loep", (-2.2, 4.2, 1.4), (0.5, 5.0, 1.2), 30),
+        "cu_run": cam("CAM_CU_08_Loep", (-5.0, 4.6, 0.9), (0.0, 5.0, 1.0), 26),
         # Følger gutten bakfra (posisjonen er en offset fra ham, se build_cinematic)
         "track": cam("CAM_00_Tracking", (-2.4, -0.6, 1.5), (0, 0.4, 1.0), 30),
         "cu_tub": cam("CAM_CU_09_Fra_Balja", (0.4, 0.2, 0.62), (-0.9, 0.4, 1.45), 16),
@@ -1324,13 +1480,13 @@ def build_cameras(coll):
         "cu_splash": cam("CAM_CU_11_Plask", (1.2, -1.1, 0.9), (0.0, 0.4, 0.9), 28),
         "cu_aha": cam("CAM_CU_12_Aha", (3.9, 1.7, 1.3), (2.25, 0.35, 1.45), 40),
         "cu_oops": cam("CAM_CU_13_Oi", (0.8, -1.5, 1.5), (0.95, 0.4, 1.35), 42),
-        "cu_jump": cam("CAM_CU_14_Hoppeklem", (0.35, -7.3, 1.6), (0.3, -5.0, 1.6), 30),
+        "cu_jump": cam("CAM_CU_14_Hoppeklem", (0.3, -7.9, 1.5), (0.3, -5.0, 1.4), 28),
         "dance": cam("CAM_15_Dans", (0.05, -10.1, 1.4), (0.05, -6.0, 1.3), 28),
         "cu_ots_tub": cam("CAM_CU_15_Ned_I_Balja_OTS", (-1.45, -0.95, 2.35), (0.0, 0.4, 0.5), 30),
         "fall": cam("CAM_18_Pladask", (2.6, -7.6, 1.1), (-0.6, -5.2, 0.8), 28),
         "cu_floor": cam("CAM_CU_19_Fra_Gulvet", (-0.2, -5.35, 0.35), (-1.3, -5.9, 1.45), 24),
         "party": cam("CAM_20_Fest", (0.6, -9.2, 0.7), (-0.8, -5.5, 0.9), 24),
-        "cu_nod": cam("CAM_CU_21_Nikker", (-3.4, -6.2, 0.5), (-1.8, -5.0, 0.3), 35),
+        "cu_nod": cam("CAM_CU_21_Nikker", (0.3, -4.4, 1.8), (-1.8, -5.0, 0.4), 32),
         "dance_boy": cam("CAM_16_Dans_Gutt", (1.8, -9.0, 0.9), (0.6, -6.5, 1.4), 32),
         "dance_girl": cam("CAM_17_Dans_Jente", (-1.8, -9.0, 0.9), (-0.5, -6.5, 1.4), 32),
     }
@@ -1358,7 +1514,7 @@ def build_cameras(coll):
         (390, "wide", "SH034 Jakt ut av bildet"),
         (484, "deep", "SH040 Jakt dypt i rommet"),
         (500, "cu_run", "SH040b CU Søster raser forbi og river ned tårnet, han etter"),
-        (536, "deep", "SH040c Jakt frem, de sklir"),
+        (522, "deep", "SH040c Jakt frem, de sklir"),
         (594, "cu_lying", "SH041 CU Ligger og ler sammen"),
         (618, "deep", "SH042 Piruett og dunk"),
         (660, "cu_tease", "SH043 CU Søster erter ham (OTS)"),
@@ -1371,7 +1527,7 @@ def build_cameras(coll):
         (PLAY + 58, "fall", "SH064 Han hopper på henne, hun dukker, pladask"),
         (PLAY + 80, "cu_floor", "SH065 Hun ler av ham (fra gulvet ved hodet hans)"),
         (PARTY, "party", "SH066 Hun begynner å danse, lyset dempes, strobelys"),
-        (PARTY + 18, "cu_nod", "SH067 CU Han ligger og nikker i takt"),
+        (PARTY + 18, "cu_nod", "SH067 CU Han ligger på ryggen og nikker i takt"),
         (PARTY + 36, "party", "SH068 Han slenger seg opp og danser"),
         (DANCE + 12, "dance_boy", "SH070 Guttens robotdans mot kamera (lav vinkel)"),
         (DANCE + 60, "dance_girl", "SH071 Søster snurrer frem mot kamera (lav vinkel)"),
@@ -1403,7 +1559,7 @@ def build_cameras(coll):
         (PLAY + 76, "Uttrykk G: pladask! nesa i gulvet"),
         (PLAY + 82, "Uttrykk J: ler så hun rister"),
         (PARTY, "Uttrykk J: begynner å danse, øynene igjen"),
-        (PARTY + 12, "Uttrykk G: ligger og nikker i takt, smiler ned i gulvet"),
+        (PARTY + 12, "Uttrykk G: ligger på ryggen og nikker i takt, smiler opp"),
         (PARTY + 40, "Uttrykk G: slenger seg opp, «min tur!»"),
         (DANCE + 14, "Uttrykk G: kul og konsentrert robotdans, stolt"),
         (DANCE + 62, "Uttrykk J: lykkelig, snurrer med øynene igjen"),
@@ -1634,10 +1790,15 @@ def main():
     bucket_g = build_bucket("Spann_Jente", c_props, pm["Rosa"], metal)
     build_smile(girl, c_char, 810, "Jente")
     build_smile(boy, c_char, 892, "Gutt", depth=FRONT + 0.04)
+    ARMS.clear()
+    build_arms(boy, c_char)
+    build_arms(girl, c_char)
 
     _last_rz.clear()
     animate_boy(boy)
     animate_girl(girl)
+    animate_boy_arms(boy)
+    animate_girl_arms(girl)
     animate_props(tub, bucket_g, bucket_b)
     cams = build_cameras(c_cam)
     build_cinematic(cams, boy, girl, c_cam)
