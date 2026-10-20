@@ -1990,7 +1990,7 @@ PLANT_KEEP_OUT = [
     (-5.0, 4.6, 1.3), (0.9, -4.0, 1.2), (-0.2, -5.35, 1.0), (2.6, -7.6, 1.3), (3.3, -0.6, 1.0),
     (-1.93, -0.95, 1.0), (3.9, 1.7, 1.0), (-1.45, -0.95, 1.0),
     (-5.0, 3.8, 1.1), (6.0, 3.6, 1.1), (-5.0, 3.4, 1.3), (-5.6, 5.8, 0.9), (6.4, -1.2, 1.0),
-    (5.3, 5.0, 1.1), (-7.2, 3.4, 0.8), (7.7, 3.2, 1.0), (-6.4, -3.4, 0.6), (4.2, 1.6, 0.9),
+    (5.3, 5.0, 1.1), (-7.2, 3.4, 0.8), (7.7, 3.2, 1.0), (4.2, 1.6, 0.9),
     (3.3, 1.2, 0.6), (-4.5, -0.75, 0.6), (5.0, 0.25, 0.6), (-3.6, 0.5, 0.7), (1.1, -1.95, 0.6),
 ]
 
@@ -2001,7 +2001,7 @@ def _seg_dist(p, a, b):
     return (a + ab * t - p).length
 
 
-def plant_spots(rnd, step=0.85, min_gap=0.8):
+def plant_spots(rnd, step=1.0, min_gap=1.05):
     """Plasser på flatt gulv i et rutenett med litt tilfeldighet, utenfor alt som må holdes fritt."""
     spots = []
     y = -7.2
@@ -2031,7 +2031,6 @@ def build_furniture(coll):
             material("M_Blad_Lys", (0.22, 0.50, 0.12), rough=0.55)]
     teal = material("M_Dempet_Turkis", (0.10, 0.35, 0.38), rough=0.65)
     mustard = material("M_Sennep", (0.80, 0.52, 0.10), rough=0.7)
-    glow = material("M_Lampeskjerm_Lys", (1.0, 0.82, 0.55), rough=0.5, emission=4.0)
 
     def ell(name, center, radii, mat, rot=(0, 0, 0), parent=None):
         bm = bmesh.new()
@@ -2073,49 +2072,121 @@ def build_furniture(coll):
         ob.rotation_euler.z = math.radians(rz)
         return ob
 
+    soil = material("M_Jord", (0.12, 0.07, 0.04), rough=0.9)
+    petal = material("M_Solsikke_Kronblad", (1.0, 0.72, 0.04), rough=0.5)
+    seeds = material("M_Solsikke_Midt", (0.22, 0.11, 0.03), rough=0.8)
+    stem_mat = material("M_Stilk", (0.20, 0.42, 0.10), rough=0.6)
+    cactus = material("M_Kaktus", (0.25, 0.45, 0.22), rough=0.6)
+    bloom = material("M_Kaktusblomst", (0.95, 0.35, 0.55), rough=0.5)
+
+    def stalk(name, base, direction, length, radius, mat, parent):
+        """Tynn stilk fra base i retning direction."""
+        ob = cyl(name, (0, 0, 0), radius, radius * 0.7, length, mat, parent, segs=10)
+        ob.location = base
+        ob.rotation_euler = Vector(direction).to_track_quat("Z", "Y").to_euler()
+        return Vector(base) + Vector(direction).normalized() * length
+
+    def sunflower(name, r, base, height, rnd, facing):
+        top = stalk(f"{name}_Stilk", base, (rnd.uniform(-0.08, 0.08), rnd.uniform(-0.08, 0.04), 1), height,
+                    0.035, stem_mat, r)
+        for k in range(4):                              # hjerteformede blader oppover stilken
+            z = base[2] + height * (0.25 + 0.17 * k)
+            side = 1 if k % 2 else -1
+            lf = ell(f"{name}_Blad_{k}", (side * 0.16, 0, z), (0.16, 0.02, 0.11), pick(leaf, k), parent=r)
+            lf.rotation_euler = (0, math.radians(side * 30), 0)
+        head = bpy.data.objects.new(f"{name}_Hode", None)
+        coll.objects.link(head)
+        head.parent, head.location = r, top
+        head.rotation_euler = (math.radians(95), 0, math.radians(facing))   # ser fremover og litt ned
+        rad = rnd.uniform(0.2, 0.28)
+        ell(f"{name}_Midt", (0, 0, 0), (rad, rad, 0.06), seeds, parent=head)
+        for k in range(18):
+            a = math.radians(k * 20)
+            p = ell(f"{name}_Kronblad_{k}", (math.cos(a) * rad * 1.45, math.sin(a) * rad * 1.45, -0.01),
+                    (rad * 0.55, rad * 0.16, 0.02), petal, parent=head)
+            p.rotation_euler = (0, 0, a)
+
     def plant(name, xy, kind, size=1.0, seed=0):
         r = root(name, xy, rz=seed * 37)
-        pot_h = 0.38 * size
-        cyl(f"{name}_Potte", (0, 0, 0), 0.17 * size, 0.23 * size, pot_h, clay, r)
-        cyl(f"{name}_Jord", (0, 0, pot_h - 0.03), 0.21 * size, 0.21 * size, 0.02,
-            material("M_Jord", (0.12, 0.07, 0.04), rough=0.9) if not bpy.data.materials.get("M_Jord")
-            else bpy.data.materials["M_Jord"], r)
         rnd = random.Random(seed)
+        pot_r = 0.23 * min(size, 1.6)
+        pot_h = 0.42 * min(size, 1.6)
+        cyl(f"{name}_Potte", (0, 0, 0), pot_r * 0.75, pot_r, pot_h, clay, r)
+        cyl(f"{name}_Jord", (0, 0, pot_h - 0.03), pot_r * 0.92, pot_r * 0.92, 0.02, soil, r)
         top = pot_h
         if kind == "hoy":                              # høye, slanke blader i vifte
-            for k in range(9):
-                a = k * 40 + rnd.uniform(-10, 10)
-                tilt = rnd.uniform(8, 24)
-                h = rnd.uniform(0.45, 0.75) * size
-                lf = ell(f"{name}_Blad_{k}", (0, 0, 0), (0.06 * size, 0.018 * size, h), pick(leaf, k), parent=r)
+            for k in range(11):
+                a = k * 33 + rnd.uniform(-10, 10)
+                tilt = rnd.uniform(6, 26)
+                h = rnd.uniform(0.5, 0.9) * size
+                lf = ell(f"{name}_Blad_{k}", (0, 0, 0), (0.07 * size, 0.02 * size, h), pick(leaf, k), parent=r)
                 lf.rotation_euler = (math.radians(tilt), 0, math.radians(a))
                 lf.location = Vector((0, 0, top)) + lf.rotation_euler.to_matrix() @ Vector((0, 0, h * 0.9))
         elif kind == "busk":                           # rund, myk busk av kuler
-            for k, (x, y, z, rr) in enumerate(((0, 0, 0.32, 0.30), (-0.17, 0.05, 0.22, 0.2),
-                                               (0.16, -0.04, 0.24, 0.21), (0.03, 0.12, 0.5, 0.18))):
-                ell(f"{name}_Busk_{k}", (x * size, y * size, top + z * size), (rr * size,) * 3,
-                    pick(leaf, k), parent=r)
-        else:                                          # fiolinfiken: stamme og store runde blader
-            stem_h = 1.2 * size
-            cyl(f"{name}_Stamme", (0, 0, top), 0.025 * size, 0.018 * size, stem_h, wood, r, segs=12)
-            for k in range(8):
+            for k in range(6):
+                a = math.radians(k * 67)
+                rr = rnd.uniform(0.18, 0.32) * size
+                ell(f"{name}_Busk_{k}", (math.cos(a) * 0.15 * size, math.sin(a) * 0.15 * size,
+                                         top + rnd.uniform(0.2, 0.55) * size), (rr,) * 3, pick(leaf, k), parent=r)
+        elif kind == "fiken":                          # fiolinfiken: stamme og store runde blader
+            stem_h = 1.3 * size
+            cyl(f"{name}_Stamme", (0, 0, top), 0.03 * size, 0.02 * size, stem_h, wood, r, segs=12)
+            for k in range(11):
                 a = k * 137.5
-                z = top + stem_h * (0.45 + 0.07 * k)
+                z = top + stem_h * (0.35 + 0.065 * k)
                 d = Vector((math.cos(math.radians(a)), math.sin(math.radians(a)), 0))
-                lf = ell(f"{name}_Blad_{k}", tuple(d * 0.16 * size + Vector((0, 0, z))),
-                         (0.13 * size, 0.02 * size, 0.17 * size), pick(leaf, k), parent=r)
+                lf = ell(f"{name}_Blad_{k}", tuple(d * 0.18 * size + Vector((0, 0, z))),
+                         (0.15 * size, 0.022 * size, 0.2 * size), pick(leaf, k), parent=r)
                 lf.rotation_euler = (math.radians(-35), 0, math.radians(a + 90))
+        elif kind == "monstera":                       # store, runde blader på lange stilker
+            for k in range(7):
+                a = k * 51 + rnd.uniform(-8, 8)
+                d = Vector((math.cos(math.radians(a)) * 0.6, math.sin(math.radians(a)) * 0.6, 1.0))
+                end = stalk(f"{name}_Stilk_{k}", (0, 0, top), d, rnd.uniform(0.5, 0.9) * size, 0.015 * size,
+                            stem_mat, r)
+                lf = ell(f"{name}_Blad_{k}", tuple(end), (0.24 * size, 0.022 * size, 0.2 * size),
+                         pick(leaf, k), parent=r)
+                lf.rotation_euler = (math.radians(-55), 0, math.radians(a + 90))
+        elif kind == "palme":                          # tre slanke stammer med buede blader
+            for t in range(3):
+                a0 = t * 120 + rnd.uniform(-20, 20)
+                d = Vector((math.cos(math.radians(a0)) * 0.12, math.sin(math.radians(a0)) * 0.12, 1.0))
+                end = stalk(f"{name}_Stamme_{t}", (0, 0, top), d, rnd.uniform(1.0, 1.5) * size, 0.022 * size,
+                            stem_mat, r)
+                for k in range(7):
+                    a = math.radians(k * 51 + t * 17)
+                    lf = ell(f"{name}_Blad_{t}_{k}", (0, 0, 0), (0.05 * size, 0.012 * size, 0.42 * size),
+                             pick(leaf, k), parent=r)
+                    lf.rotation_euler = (math.radians(65), 0, a)
+                    lf.location = end + lf.rotation_euler.to_matrix() @ Vector((0, 0, 0.38 * size))
+        elif kind == "kaktus":                         # rund kaktus med armer og en blomst
+            h = 0.55 * size
+            ell(f"{name}_Kropp", (0, 0, top + h), (0.17 * size, 0.17 * size, h), cactus, parent=r)
+            for k, side in enumerate((-1, 1)):
+                ell(f"{name}_Arm_{k}", (side * 0.2 * size, 0, top + h * (1.05 + 0.25 * k)),
+                    (0.07 * size, 0.07 * size, 0.2 * size), cactus, parent=r)
+            ell(f"{name}_Blomst", (0, 0, top + 2 * h), (0.06 * size, 0.06 * size, 0.04 * size), bloom, parent=r)
+        else:                                          # solsikker: tre høye i en stor potte
+            for k in range(3):
+                a = math.radians(k * 120 + 30)
+                sunflower(f"{name}_{k}", r, (math.cos(a) * 0.12, math.sin(a) * 0.12, top),
+                          rnd.uniform(1.6, 2.5) * min(size, 1.2), rnd, facing=-r.rotation_euler.z * 57.3 + rnd.uniform(-25, 25))
         return r
 
     # Rommet fylles med planter, store og små, alle på gulvet. Plassene velges
     # automatisk utenfor løpeveiene, kamerabanene og møblene (se PLANT_KEEP_OUT).
+    # De største plantene og solsikkene står ut mot kantene og bakover.
     rnd = random.Random(21)
     spots = plant_spots(rnd)
-    kinds = ("hoy", "busk", "fiken")
+    small = ("busk", "kaktus", "hoy", "monstera")
+    big = ("fiken", "palme", "monstera", "hoy")
     for i, (x, y) in enumerate(spots):
-        edge = min(1.0, max(0.0, (abs(x) - 4.0) / 4.0))   # større planter ut mot kantene
-        size = rnd.uniform(0.55, 0.85) + 0.75 * edge * rnd.random()
-        kind = kinds[i % 3] if size < 1.1 else rnd.choice(("hoy", "fiken"))
+        edge = min(1.0, max(0.0, (abs(x) - 4.0) / 4.5))
+        size = rnd.uniform(0.7, 1.1) + 1.0 * edge * rnd.random()
+        if abs(x) > 7.0 and y > -1.5 and i % 3 == 0:
+            kind = "solsikke"
+        else:
+            kind = (big if size > 1.25 else small)[i % 4]
         plant(f"Plante_{i:02d}", (x, y), kind, size, seed=100 + i)
 
     # Lav trebenk med en pute
@@ -2143,24 +2214,6 @@ def build_furniture(coll):
         box(f"Bok_{k}", (x + w / 2, -0.04, z0 + h / 2), (w, 0.26, h),
             [teal, mustard, clay, cream][k % 4], shelf, rz=0 if k % 3 else 6)
         x += w + 0.015
-
-    # Gulvlampe med varmt lys (praktisk lyskilde i rommet)
-    lamp = root("Gulvlampe", (-6.4, -3.4))
-    cyl("Gulvlampe_Fot", (0, 0, 0), 0.22, 0.2, 0.04, wood, lamp)
-    cyl("Gulvlampe_Stang", (0, 0, 0.04), 0.02, 0.02, 1.55, cream, lamp, segs=12)
-    cyl("Gulvlampe_Skjerm", (0, 0, 1.45), 0.32, 0.2, 0.36, glow, lamp)
-    ld = bpy.data.lights.new("Lys_Gulvlampe", "POINT")
-    ld.energy, ld.color, ld.shadow_soft_size = 60, (1.0, 0.78, 0.5), 0.3
-    lo = bpy.data.objects.new("Lys_Gulvlampe", ld)
-    coll.objects.link(lo)
-    lo.parent, lo.location = lamp, (0, 0, 1.55)
-
-    # Liten bordlampe med kuppelskjerm på bordet med pensler
-    desk = root("Bordlampe", (6.85, -1.35))
-    desk.location.z = 0.745
-    cyl("Bordlampe_Fot", (0, 0, 0), 0.09, 0.08, 0.03, cream, desk)
-    cyl("Bordlampe_Stang", (0, 0, 0.03), 0.012, 0.012, 0.3, cream, desk, segs=10)
-    ell("Bordlampe_Skjerm", (0, 0, 0.36), (0.12, 0.12, 0.08), glow, parent=desk)
 
 
 # --------------------------------------------------------------------------

@@ -47,10 +47,9 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
   - malingstuber på trekassa
 
   Alt står utenfor løpeveiene og gir dybde og skala bak handlingen.
-- **Planter og møbler** (`build_furniture()`), i samme rene og enkle stil som Pixars lampeintro: avrundede grunnformer, matte materialer, få varme farger (lyst tre, krem, terrakotta, grønt, sennep og dempet turkis) og god luft rundt hver ting.
-  - **Planter:** rommet er fylt med over 40 planter i terrakottapotter, store og små (høye bladplanter, runde busker og fiolinfiken). Alle står på gulvet, og de største står ut mot kantene. Plassene velges automatisk (`plant_spots()`) utenfor løpeveiene, kamerabanene og møblene (`PLANT_PATHS`, `PLANT_KEEP_OUT`).
+- **Planter og møbler** (`build_furniture()`), i samme rene og enkle stil som Pixars lampeintro: avrundede grunnformer, matte materialer, få varme farger (lyst tre, krem, terrakotta, grønt, solsikkegult, sennep og dempet turkis) og god luft rundt hver ting.
+  - **Planter:** rommet er fylt med rundt 30 store og små planter i terrakottapotter: høye bladplanter, runde busker, fiolinfiken, monstera, palmer og kaktus med blomst. Bakerst ut mot hjørnene står grupper med store solsikker (1,6–2,5 m) som ser fremover. Alle står på gulvet, og de største står ut mot kantene. Plassene velges automatisk (`plant_spots()`) utenfor løpeveiene, kamerabanene og møblene (`PLANT_PATHS`, `PLANT_KEEP_OUT`).
   - **Møbler:** en lav trebenk med pute, en sittesekk og en lav bokhylle med bøker.
-  - **Lamper:** en gulvlampe og en bordlampe med varmt lys. De gir en praktisk lyskilde som også lyser i festen.
 
   Noen planter ligger i forgrunnen i følgeskuddet og løpe-nærbildet og gir dybde.
 - Rekvisitter: trekasse, en stor regnbuebalje midt på gulvet (én kile i hver farge), et gult og et rosa malingsspann.
