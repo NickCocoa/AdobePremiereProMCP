@@ -5,7 +5,7 @@ De erter hverandre og kaster maling på hverandre.
 
 ![Kontaktark](contact_sheet.jpg)
 
-Preview-video i lav oppløsning (640×360, Cycles 4 samples): [`kylling_previs_preview.mp4`](kylling_previs_preview.mp4)
+Preview-video i lav oppløsning med temp-musikk (640×360, Cycles 4 samples): [`kylling_previs_preview.mp4`](kylling_previs_preview.mp4)
 
 ## Kjør
 
@@ -54,6 +54,7 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
   - søster får gult på ryggen når hun sklir i dammen
   - drakten hans smitter over på siden hennes i klemmen og hoppeklemmen
   - han får rosa i fjeset når han går pladask i en dam
+  - drakten hans er våt maling i store, flytende fargeflekker
 
   Slik blir de renere i starten og stadig mer fargerike mot slutten.
 - Malingen er i lyse, lekne farger: rosa, turkis, gul, lime, lilla, oransje og himmelblå.
@@ -72,7 +73,7 @@ Tre-punkts område-lys (varm key, kjølig fill og kraftig rimlys bakfra som skil
 | Festen | dempet lilla, strobelys i fire farger og dis (`Fest_Dis`) som gir synlige lysstråler |
 | Slutten | lyst og varmt når de griper kameraet |
 
-## Handling (24 fps, 1580 frames ≈ 66 sek)
+## Handling (24 fps, 1600 frames ≈ 67 sek)
 
 | Frames | Del | Hva skjer |
 |--------|-----|-----------|
@@ -82,8 +83,13 @@ Tre-punkts område-lys (varm key, kjølig fill og kraftig rimlys bakfra som skil
 | 596–821 | Jakten dypt i rommet | De løper dypt inn i rommet. Hun river ned tårnet. Begge sklir i den gule dammen og ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
 | 822–1177 | Linsa og klemmen | Hun løper mot kamera og dukker, og malingen hans treffer linsa. Gutten sier «oi!» og fniser. Hun tørker linsa, puster lettet ut og smiler. Han løper inn i bildet fra høyre og klemmer henne, de fniser sammen og gir et varmt smil i kamera. |
 | 1178–1313 | Leken | Hun får en idé og hopper opp på broren (f1186). Han rister henne av seg, og hun flyr av og ler. Han lader opp og hopper på henne (f1258), men hun dukker unna, og han går pladask med nesa i gulvet (f1266). Hun ler så hun rister (sett fra gulvet). |
-| 1314–1397 | Fest | Hun begynner å danse. Lyset i rommet dempes, og strobelys i fire farger starter. Han ruller over på ryggen og ligger og nikker i takt, med ansiktet mot oss (nærbilde), og så slenger han seg opp og danser også (f1370). |
-| 1398–1580 | Slutten | Én og én danser de mot kamera med hvert sitt lave nærbilde: først gutten med robotdans, så søster som snurrer. Til slutt kommer begge helt frem og griper kameraet sammen (f1508). Strobelysene slukker, rommet blir lyst og varmt igjen, og de smiler rett inn i linsa. Slutt. |
+| 1314–1397 | Fest | Hun begynner å danse. Lyset i rommet dempes, og strobelys i fire farger starter. Han ruller over på ryggen og ligger og nikker i takt, med ansiktet mot oss (nærbilde), og så slenger han seg opp og danser også (f1374). |
+| 1398–1600 | Slutten | Én og én danser de mot kamera med hvert sitt lave nærbilde: først gutten med robotdans, så søster som snurrer. Til slutt kommer begge helt frem og griper kameraet sammen (f1506). Strobelysene slukker, rommet blir lyst og varmt igjen, og de smiler rett inn i linsa. **Knappen:** han slipper kameraet og etterlater et turkis fjæravtrykk på linsa (f1522). De ser det, ser på hverandre og bryter ut i latter. Slutt. |
+
+**Plant og payoff.** Kameraet etableres tidlig, så malingen på linsa og fjæravtrykket på slutten føles fortjent:
+- Gutten kikker kort inn i kamera mens han beundrer verket sitt (f≈218).
+- Søster erter mot kamera før hun dukker.
+- Malingen på linsa midtveis kommer tilbake som fjæravtrykket i siste bilde.
 
 **Pusterom og reaksjoner.** 16 pauser på 0,4–1,1 sekunder gir tid til reaksjonene og relasjonen mellom dem. Figurene puster mens de står:
 1. Han ser ned i regnbuemalingen.
@@ -158,10 +164,10 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 | 1284 | `CAM_CU_19_Fra_Gulvet` | SH065 Hun ler av ham (fra gulvet ved hodet hans) |
 | 1314 | `CAM_20_Fest` | SH066 Hun begynner å danse, lyset dempes, strobelys |
 | 1332 | `CAM_CU_21_Nikker` | SH067 CU Han ligger på ryggen og nikker i takt |
-| 1360 | `CAM_20_Fest` | SH068 Han slenger seg opp og danser |
+| 1362 | `CAM_20_Fest` | SH068 Han slenger seg opp og danser |
 | 1398 | `CAM_16_Dans_Gutt` | SH070 Guttens robotdans mot kamera (lav vinkel) |
 | 1446 | `CAM_17_Dans_Jente` | SH071 Søster snurrer frem mot kamera (lav vinkel) |
-| 1490 | `CAM_15_Dans` | SH072 De kommer helt frem og griper kameraet, rommet blir lyst |
+| 1494 | `CAM_15_Dans` | SH072 De kommer helt frem og griper kameraet, rommet blir lyst |
 
 Ingen skudd er lenger enn ca. 6 sekunder, bortsett fra det siste der de holder kameraet.
 
@@ -186,6 +192,14 @@ Dette gjør `build_cinematic()`:
 Kamerabyttene ligger som markører på tidslinja, bundet til kameraene, så *Viewport Render Animation* og vanlig render klipper automatisk.
 
 I tillegg ligger det markører som heter `Uttrykk …` (uten kamera). De angir hvilket ansiktsuttrykk figurene skal ha i den ferdige versjonen, for eksempel «ertende», «skrekkslagen», «lettet», «stort smil», «klem, latter» og «varmt smil i kamera». Hvert uttrykk har 1–3 sekunder å virke på.
+
+## Musikk og takt (temp)
+
+Skriptet lager et syntetisk temp-spor, `temp_musikk.wav` (120 BPM), og legger det i Video Sequencer på kanal 1. Det er bare en plassholder for rytmen og skal byttes ut med ekte musikk.
+- **Gjennom historien:** lette plukk på hvert slag, og korte lydstikk på treffene: sparket, plask, treff, tårnet, skliing, linsa, klemmen, hoppet, pladask og knappen.
+- **I festen:** fullt beat med kick, skarptromme, hihat og bass. Strobelysene blinker i sekstendedeler. Festen starter på et slag (f1314), og hvert danseskudd og grepet om kameraet ligger på hele slag (12 bilder per slag).
+- **Når de griper kameraet:** et stort, varmt akkordløft, og en liten latterfrase på knappen.
+- **Bytte musikk:** legg ekte musikk i 120 BPM med første slag i festen på f1314, så treffer klipp og lys fortsatt. `BEAT` og `make_temp_music()` styrer dette.
 
 ## Justere
 

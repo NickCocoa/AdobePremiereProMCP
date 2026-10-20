@@ -20,8 +20,10 @@ Karakterer (blokking):
 """
 
 import math
+import os
 import random
 import sys
+import tempfile
 from contextlib import contextmanager
 
 import bmesh
@@ -32,8 +34,9 @@ FPS = 24
 FRAME_START = 1
 PLAY = 990        # leken etter klemmen: hoppeklem, riste av, hopp, pladask
 PARTY = 1100      # hun begynner å danse: lyset dempes, strobelys
-DANCE = 1162      # én og én danser de mot kamera
-FRAME_END = 1332  # før klipp (CUTS) og pauser (HOLDS)
+DANCE = 1160      # én og én danser de mot kamera
+FRAME_END = 1350  # før klipp (CUTS) og pauser (HOLDS)
+BEAT = 12         # 120 BPM ved 24 fps: festen og dansen ligger på taktslagene
 
 # Karakter-proporsjoner (meter): kyllingform med barnslige proporsjoner,
 # eggformet kropp og stort hode. Total høyde CHAR_H, origo nederst.
@@ -559,14 +562,12 @@ def build_paint_coat(target, coll, mat, f_on):
     Forsiden holdes fri, så den røde forsiden alltid synes."""
     mats = list(mat) if isinstance(mat, (list, tuple)) else [mat]
     bm = bmesh.new()
-    ellipsoid_bm(bm, BODY, grow=0.035, segs=(24, 14))
-    ellipsoid_bm(bm, HEAD, grow=0.035, segs=(24, 14))
+    ellipsoid_bm(bm, BODY, grow=0.035, segs=(48, 28))
+    ellipsoid_bm(bm, HEAD, grow=0.035, segs=(48, 28))
     bm.normal_update()
     drop = [f for f in bm.faces if f.normal.y < -0.45 or f.calc_center_median().z < 0.6]
     bmesh.ops.delete(bm, geom=drop, context="FACES_ONLY")
-    for i, f in enumerate(bm.faces):
-        f.material_index = (i // 7) % len(mats)
-    ob = mesh_object("Gutt_Malingsdrakt", bm, coll, mats)
+    ob = mesh_object("Gutt_Malingsdrakt", bm, coll, [paint_blend_material("M_Malingsdrakt", mats)])
     smooth(ob)
     ob.parent = target
     pop(ob, f_on, overshoot=1.06)
@@ -575,6 +576,32 @@ def build_paint_coat(target, coll, mat, f_on):
                                     ((-0.12, 0.45), (0.12, 0.09)))):
         splat_on(target, f"Gutt_Forside_Flekk_{i}", coll, pick(mats, i + 1), f_on, xz, size=size)
     return ob
+
+
+def paint_blend_material(name, mats):
+    """Våt maling i store, flytende fargeflekker (støytekstur), ikke ruter."""
+    cols = [tuple(m.diffuse_color[:3]) for m in mats]
+    m = material(name, cols[0], rough=0.15)
+    nt = m.node_tree
+    bsdf = nt.nodes.get("Principled BSDF")
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    noise = nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 2.2
+    noise.inputs["Detail"].default_value = 1.5
+    noise.inputs["Distortion"].default_value = 0.8
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.interpolation = "CONSTANT"
+    els = ramp.color_ramp.elements
+    while len(els) < len(cols):
+        els.new(0.5)
+    for i, (el, c) in enumerate(zip(els, cols)):
+        el.position = 0.3 + 0.4 * i / len(cols)        # støyen ligger mest rundt 0,3–0,7
+        el.color = (*c, 1.0)
+    els[0].position = 0.0
+    nt.links.new(tc.outputs["Object"], noise.inputs["Vector"])
+    nt.links.new(noise.outputs["Fac"], ramp.inputs["Fac"])
+    nt.links.new(ramp.outputs["Color"], bsdf.inputs["Base Color"])
+    return m
 
 
 def build_smile(target, coll, f_on, prefix, depth=None):
@@ -1387,7 +1414,7 @@ def build_cinematic(cams, boy, girl, coll):
         ("party", mid, [(PARTY, PARTY + 18, 0.3), (PARTY + 36, DANCE + 12, 0.4)]),
         ("cu_nod", head_b, [(PARTY + 18, PARTY + 36, 0.15)]),
         ("dance_boy", head_b, [(DANCE + 12, DANCE + 60, 0.4)]),
-        ("dance_girl", head_g, [(DANCE + 60, DANCE + 104, 0.4)]),
+        ("dance_girl", head_g, [(DANCE + 60, DANCE + 108, 0.4)]),
     ]
     for key_, target, windows in cu:
         aim(cams[key_], target)
@@ -1433,12 +1460,14 @@ def build_acting(boy, girl, coll):
     plan = {
         "Gutt": dict(
             other=[(222, 236), (288, 388), (598, 680), (744, 766), (870, 890), (906, 944),
-                   (PLAY, PLAY + 66)],
-            cam=[(892, 904), (950, 990), (PARTY + 4, PARTY + 40), (DANCE + 12, FRAME_END)]),
+                   (PLAY, PLAY + 66), (DANCE + 136, DANCE + 148)],
+            cam=[(212, 222), (892, 904), (950, 990), (PARTY + 4, PARTY + 40),
+                 (DANCE + 12, DANCE + 134), (DANCE + 150, FRAME_END)]),
         "Jente": dict(
             other=[(224, 300), (316, 330), (378, 398), (586, 672), (852, 890), (906, 944),
-                   (PLAY, PLAY + 66), (PLAY + 76, PARTY - 2)],
-            cam=[(778, 850), (892, 904), (950, 990), (PARTY + 2, FRAME_END)]),
+                   (PLAY, PLAY + 66), (PLAY + 76, PARTY - 2), (DANCE + 136, DANCE + 148)],
+            cam=[(662, 672), (778, 850), (892, 904), (950, 990), (PARTY + 2, DANCE + 134),
+                 (DANCE + 150, FRAME_END)]),
     }
     for ob in (boy, girl):
         g = bpy.data.objects[f"Blikk_{ob.name}"]
@@ -1552,7 +1581,7 @@ def build_ending(boy, girl, coll_char, coll_light, cam):
         key_arm(ab[-1], f, -75 if k % 2 else -95)      # tromming i gulvet
         key_arm(ab[1], f, 95 if k % 2 else 75)
     # --- Han slenger seg opp og danser
-    UP = PARTY + 40
+    UP = PARTY + 42
     B(UP, -0.45, -5.0, 0.2, 90, -90, 0.9, raw=True, ry=180)
     B(UP + 6, -0.6, -5.0, 0.9, 0, -20, 1.2, raw=True)              # SLENGER SEG OPP
     B(UP + 12, -0.7, -5.0, 0, 0, 0, 0.8)
@@ -1566,7 +1595,7 @@ def build_ending(boy, girl, coll_char, coll_light, cam):
     G(DANCE, -0.4, -5.1, 0, 0, rzg, 1.0, spin=True)
 
     # --- Lyset: dempes til fest, strobelys, lyst igjen når de griper kameraet
-    solo_b, solo_g, come, grab = DANCE + 12, DANCE + 60, DANCE + 104, DANCE + 122
+    solo_b, solo_g, come, grab = DANCE + 12, DANCE + 60, DANCE + 108, DANCE + 120
     for f, level in ((PARTY - 4, 1.0), (PARTY + 4, 0.22), (grab - 4, 0.22), (grab + 4, 1.15)):
         light_level(f, level)
     colors = [PAINTS["Rosa"], PAINTS["Turkis"], PAINTS["Gul"], PAINTS["Lilla"]]
@@ -1581,7 +1610,7 @@ def build_ending(boy, girl, coll_char, coll_light, cam):
         ld.energy = 0
         ld.keyframe_insert("energy", frame=FRAME_START)
         for k, f in enumerate(range(PARTY, grab, 3)):
-            ld.energy = 3500 if (k + i) % 4 in (0, 1) else 0
+            ld.energy = 2400 if (k + i) % 4 in (0, 1) else 0
             ld.keyframe_insert("energy", frame=f)
         ld.energy = 0
         ld.keyframe_insert("energy", frame=grab)
@@ -1631,10 +1660,31 @@ def build_ending(boy, girl, coll_char, coll_light, cam):
         key_arm(arms[outer], grab - 2, outer * 30, rx=60)
         key_arm(arms[outer], grab, outer * 25, rx=82)       # ytterhånd griper kameraet
         key_arm(arms[-outer], grab, -outer * 100)          # innerarmen rundt den andre
-    for k, f in enumerate(range(grab, FRAME_END + 1, 8)):  # holder kameraet, smiler
+    for k, f in enumerate(range(grab, DANCE + 136, 8)):    # holder kameraet, smiler
         sq = 1.02 if k % 2 else 0.98
         G(f, -0.38, -8.6, 0, 5, rzg + (3 if k % 2 else -3), sq, ry=4, spin=True)
         B(f, 0.42, -8.6, 0, 5, 3 if k % 2 else -3, sq, ry=-4)
+
+    # --- Knappen: han slipper kameraet og etterlater et fjæravtrykk på linsa
+    #     (payoff på malingen på linsa tidligere). De ser det, ser på hverandre og ler.
+    rel = DANCE + 136
+    key_arm(ab[1], rel - 4, 25, rx=82)
+    key_arm(ab[1], rel + 4, 40)
+    print_mat = bpy.data.materials.get("M_Maling_Turkis")
+    for k, tilt in enumerate((-25, 0, 25)):
+        fp = blob_mesh(f"Kamera_Fjaeravtrykk_{k}", coll_char, print_mat)
+        fp.parent = cam
+        fp.location = (0.135 + 0.014 * (k - 1), 0.06 + 0.008 * abs(k - 1), -0.2)
+        fp.rotation_euler = (0, 0, math.radians(tilt - 20))
+        pop(fp, rel + 1, full=(0.008, 0.02, 0.002), overshoot=1.15)
+    G(rel + 6, -0.38, -8.6, 0, 0, rzg + 25, 1.0, ry=2, spin=True)    # ser på hverandre
+    B(rel + 6, 0.42, -8.6, 0, 0, -25, 1.0, ry=-2)
+    G(rel + 12, -0.38, -8.6, 0, 0, rzg + 28, 1.04, ry=2, spin=True)
+    B(rel + 12, 0.42, -8.6, 0, 0, -28, 1.04, ry=-2)
+    for k, f in enumerate(range(rel + 14, FRAME_END + 1, 4)):   # bryter ut i latter
+        sq = 1.07 if k % 2 == 0 else 0.93
+        G(f, -0.38, -8.6, 0.04 if k % 2 == 0 else 0, -10 if k % 2 == 0 else 3, rzg + 5, sq, ry=3, spin=True)
+        B(f, 0.42, -8.6, 0.04 if k % 2 == 0 else 0, -10 if k % 2 == 0 else 3, -5, sq, ry=-3)
 
     # --- Kameraet blir grepet: vidvinkel, et lite rykk, litt håndholdt skjelving
     for f, mm in ((come, 28.0), (grab, 18.0)):
@@ -1673,7 +1723,7 @@ def color_script(coll):
     play = ((1.0, 0.84, 0.66), (0.80, 0.86, 1.0), (1.0, 0.84, 0.66), (0.96, 0.91, 0.84))
     party = ((0.70, 0.55, 1.0), (0.55, 0.45, 1.0), (1.0, 0.45, 0.85), (0.30, 0.24, 0.45))
     finale = ((1.0, 0.86, 0.68), (0.85, 0.88, 1.0), (1.0, 0.86, 0.66), (1.0, 0.94, 0.86))
-    grab = DANCE + 122
+    grab = DANCE + 120
     script = [(1, morning), (200, morning), (216, clash), (456, clash), (476, chase), (744, chase),
               (772, golden), (PLAY, golden), (PLAY + 24, play), (PARTY - 4, play),
               (PARTY + 4, party), (grab - 4, party), (grab + 4, finale)]
@@ -1836,7 +1886,7 @@ def build_cameras(coll):
         "fall": cam("CAM_18_Pladask", (2.6, -7.6, 1.1), (-0.6, -5.2, 0.8), 28),
         "cu_floor": cam("CAM_CU_19_Fra_Gulvet", (-0.2, -5.35, 0.35), (-1.3, -5.9, 1.45), 24),
         "party": cam("CAM_20_Fest", (0.6, -9.2, 0.7), (-0.8, -5.5, 0.9), 24),
-        "cu_nod": cam("CAM_CU_21_Nikker", (0.3, -4.4, 1.8), (-1.8, -5.0, 0.4), 32),
+        "cu_nod": cam("CAM_CU_21_Nikker", (0.9, -4.0, 2.1), (-1.8, -5.0, 0.4), 30),
         "dance_boy": cam("CAM_16_Dans_Gutt", (1.8, -9.0, 0.9), (0.6, -6.5, 1.4), 32),
         "dance_girl": cam("CAM_17_Dans_Jente", (-1.8, -9.0, 0.9), (-0.5, -6.5, 1.4), 32),
     }
@@ -1879,7 +1929,7 @@ def build_cameras(coll):
         (PARTY + 36, "party", "SH068 Han slenger seg opp og danser"),
         (DANCE + 12, "dance_boy", "SH070 Guttens robotdans mot kamera (lav vinkel)"),
         (DANCE + 60, "dance_girl", "SH071 Søster snurrer frem mot kamera (lav vinkel)"),
-        (DANCE + 104, "dance", "SH072 De kommer helt frem og griper kameraet, rommet blir lyst"),
+        (DANCE + 108, "dance", "SH072 De kommer helt frem og griper kameraet, rommet blir lyst"),
     ]
     for f, cam_key, label in shots:
         m = scene.timeline_markers.new(label, frame=f)
@@ -1911,7 +1961,9 @@ def build_cameras(coll):
         (PARTY + 40, "Uttrykk G: slenger seg opp, «min tur!»"),
         (DANCE + 14, "Uttrykk G: kul og konsentrert robotdans, stolt"),
         (DANCE + 62, "Uttrykk J: lykkelig, snurrer med øynene igjen"),
-        (DANCE + 122, "Uttrykk G+J: griper kameraet, store smil rett inn i linsa"),
+        (DANCE + 120, "Uttrykk G+J: griper kameraet, store smil rett inn i linsa"),
+        (DANCE + 136, "Uttrykk G+J: ser fjæravtrykket på linsa, ser på hverandre"),
+        (DANCE + 158, "Uttrykk G+J: bryter ut i latter. Slutt"),
     ]
     for f, label in expressions:
         scene.timeline_markers.new(label, frame=f)
@@ -2008,7 +2060,7 @@ HOLDS = [
     (854, 20),    # klemmen: de fniser og ser på hverandre
     (950, 12),    # hun klemmer ham, han ser lurt opp
     (1006, 14),    # pladask: stille et øyeblikk
-    (1074, 10),   # han ligger og får en idé før han slenger seg opp
+    (1074, 12),   # han ligger og får en idé før han slenger seg opp (ett taktslag)
 ]
 END_HOLD = 24     # siste bilde står litt før det er slutt
 
@@ -2055,6 +2107,149 @@ def apply_holds():
                 m.frame += n
         scene.frame_end += n
     scene.frame_end += END_HOLD
+
+
+def final_frame(f):
+    """Ferdig frame (etter CUTS og HOLDS) for en opprinnelig frame."""
+    r = retime(f)
+    return r + sum(n for at, n in HOLDS if r >= at)
+
+
+# --------------------------------------------------------------------------
+# Temp-musikk: syntetisk plassholder i 120 BPM, laget av skriptet selv
+# --------------------------------------------------------------------------
+
+def make_temp_music(path):
+    """Lager temp_musikk.wav: lette plukk gjennom historien, lydstikk på treffene,
+    fullt beat i festen og et stort akkordløft når de griper kameraet.
+    Bytt den ut med ekte musikk i 120 BPM; taktslagene ligger på festens første frame."""
+    import wave
+    import numpy as np
+    sr = 44100
+    end = bpy.context.scene.frame_end
+    n = int(end / FPS * sr) + sr
+    out = np.zeros(n)
+    t_of = lambda frame: (frame - 1) / FPS
+    hz = lambda midi: 440.0 * 2 ** ((midi - 69) / 12)
+
+    def add(t0, sig, gain):
+        i = int(t0 * sr)
+        if 0 <= i < n:
+            seg = sig[: n - i]
+            out[i:i + len(seg)] += gain * seg
+
+    def env(dur, attack=0.005, decay=None):
+        tt = np.arange(int(dur * sr)) / sr
+        e = np.minimum(tt / attack, 1.0)
+        return tt, e * np.exp(-tt / (decay or dur / 4))
+
+    def pluck(midi, dur=0.4):
+        tt, e = env(dur, decay=0.12)
+        f = hz(midi)
+        return e * (np.sin(2 * np.pi * f * tt) + 0.3 * np.sin(4 * np.pi * f * tt))
+
+    def kick():
+        tt, e = env(0.25, attack=0.001, decay=0.08)
+        f = 45 + 80 * np.exp(-tt * 30)
+        return e * np.sin(2 * np.pi * np.cumsum(f) / sr)
+
+    def noise(dur, decay):
+        tt, e = env(dur, attack=0.001, decay=decay)
+        return e * np.random.default_rng(int(dur * 1e4)).uniform(-1, 1, len(tt))
+
+    def chord(midis, dur, decay=None, attack=0.02):
+        tt, e = env(dur, attack=attack, decay=decay or dur / 2)
+        return e * sum(np.sin(2 * np.pi * hz(m) * tt) for m in midis) / len(midis)
+
+    party, grab = final_frame(PARTY), final_frame(DANCE + 120)
+    beat = BEAT / FPS
+    prog = [(48, [60, 64, 67]), (45, [57, 60, 64]), (41, [57, 60, 65]), (43, [59, 62, 67])]  # C Am F G
+    melody = [72, 76, 79, 76, 74, 79, 77, 74]
+
+    # Historien: plukk på hvert slag, bass på 1 og 3, takten går bakover fra festen
+    k = -int((party - 1) / BEAT)
+    while True:
+        frame = party + k * BEAT
+        if frame >= party:
+            break
+        if frame >= 1:
+            bar, b = divmod(k, 4)
+            root, notes = prog[bar % 4]
+            add(t_of(frame), pluck(melody[k % 8]), 0.16)
+            if b % 2 == 0:
+                add(t_of(frame), pluck(root - 12 + 24, 0.6), 0.14)
+            add(t_of(frame + BEAT / 2), noise(0.04, 0.01), 0.025)
+        k += 1
+
+    # Festen: fullt beat frem til de griper kameraet
+    k = 0
+    while party + k * BEAT < grab:
+        frame = party + k * BEAT
+        bar, b = divmod(k, 4)
+        root, notes = prog[bar % 4]
+        add(t_of(frame), kick(), 0.5)
+        if b in (1, 3):
+            add(t_of(frame), noise(0.18, 0.05), 0.22)
+        for h in (0, 0.5):
+            add(t_of(frame + h * BEAT), noise(0.05, 0.012), 0.06)
+            add(t_of(frame + h * BEAT), pluck(root - 12, 0.25), 0.25)
+        if b in (1, 3):
+            add(t_of(frame + BEAT / 2), chord([m + 12 for m in notes], 0.2, 0.06), 0.18)
+        k += 1
+
+    # Grepet om kameraet: rommet blir lyst, stort varmt akkordløft
+    add(t_of(grab), chord([48, 60, 64, 67, 72, 76], (end - grab) / FPS + 0.5, attack=0.05), 0.5)
+
+    # Lydstikk på treffene (opprinnelige frames)
+    stings = [(230, "dunk"), (246, "plask"), (326, "plask"), (396, "plask"), (512, "brak"),
+              (562, "skli"), (578, "skli"), (742, "plask"), (870, "varm"), (PLAY + 8, "hopp"),
+              (PLAY + 76, "dunk"), (DANCE + 137, "plink"), (DANCE + 150, "latter")]
+    stings += [(f, "klonk") for f in (31, 215, 507, 517, 689, 709)]
+    for f, kind in stings:
+        t0 = t_of(final_frame(f))
+        if kind == "dunk":
+            add(t0, kick(), 0.6)
+        elif kind == "plask":
+            add(t0, noise(0.35, 0.09), 0.3)
+            add(t0, pluck(60, 0.3), 0.1)
+        elif kind == "brak":
+            for i in range(3):
+                add(t0 + 0.07 * i, noise(0.2, 0.05), 0.25)
+                add(t0 + 0.07 * i, pluck(84 - 5 * i, 0.2), 0.15)
+        elif kind == "skli":
+            tt, e = env(0.5, decay=0.3)
+            add(t0, e * np.sin(2 * np.pi * np.cumsum(900 - 1200 * tt) / sr), 0.12)
+        elif kind == "varm":
+            add(t0, chord([60, 64, 67, 72], 2.5, attack=0.3), 0.35)
+        elif kind == "hopp":
+            tt, e = env(0.4, decay=0.2)
+            add(t0, e * np.sin(2 * np.pi * np.cumsum(300 + 900 * tt) / sr), 0.2)
+        elif kind == "plink":
+            add(t0, pluck(96, 0.5), 0.35)
+        elif kind == "latter":
+            for i, m in enumerate((72, 76, 79, 84, 88)):
+                add(t0 + 0.09 * i, pluck(m, 0.4), 0.25)
+        elif kind == "klonk":
+            add(t0, pluck(79, 0.15), 0.2)
+            add(t0, noise(0.08, 0.02), 0.12)
+
+    out /= max(1e-6, np.abs(out).max()) / 0.8
+    data = (out * 32767).astype("<i2").tobytes()
+    with wave.open(path, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes(data)
+    return path
+
+
+def add_music_strip(path):
+    scene = bpy.context.scene
+    ed = scene.sequence_editor or scene.sequence_editor_create()
+    strips = ed.strips if hasattr(ed, "strips") else ed.sequences
+    for st in list(strips):
+        strips.remove(st)
+    strips.new_sound("Temp_musikk", path, 1, FRAME_START)
 
 
 # --------------------------------------------------------------------------
@@ -2164,6 +2359,10 @@ def main():
     apply_holds()
 
     args = parse_args()
+    out_dir = os.path.dirname(os.path.abspath(bpy.path.abspath(args["save"]))) if "save" in args \
+        else (os.path.dirname(bpy.data.filepath) or tempfile.gettempdir())
+    music = make_temp_music(os.path.join(out_dir, "temp_musikk.wav"))
+    add_music_strip(music)
     if "save" in args:
         bpy.ops.wm.save_as_mainfile(filepath=bpy.path.abspath(args["save"]))
         print("Lagret:", args["save"])
