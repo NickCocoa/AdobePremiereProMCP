@@ -1765,6 +1765,137 @@ def color_script(coll):
         haze.keyframe_insert("hide_viewport", frame=f)
 
 
+# --------------------------------------------------------------------------
+# Barnemalerier: Mona Lisa og Van Goghs Stjernenatt, tegnet av skriptet
+# --------------------------------------------------------------------------
+
+class KidCanvas:
+    """Enkel «fargestift»-tegneflate i numpy (0..1 RGB, y=0 øverst)."""
+
+    def __init__(self, w, h, bg, seed):
+        import numpy as np
+        self.np, self.w, self.h = np, w, h
+        self.img = np.ones((h, w, 3)) * np.array(bg)
+        self.yy, self.xx = np.mgrid[0:h, 0:w] / float(h)   # koordinater i høyde-enheter
+        self.rnd = np.random.default_rng(seed)
+
+    def _paint(self, mask, col, wobble=0.08):
+        np = self.np
+        grain = 1.0 + wobble * (self.rnd.random(mask.shape) - 0.5)     # ujevn farge som fargestift
+        self.img[mask] = (np.array(col) * grain[mask][:, None]).clip(0, 1)
+
+    def ellipse(self, cx, cy, rx, ry, col, wobble=0.08):
+        m = ((self.xx - cx) / rx) ** 2 + ((self.yy - cy) / ry) ** 2 <= 1.0
+        self._paint(m, col, wobble)
+
+    def poly(self, pts, col):
+        np = self.np
+        m = np.ones_like(self.xx, dtype=bool)
+        n = len(pts)
+        sign = None
+        for i in range(n):                             # konveks polygon via halvplan
+            (x0, y0), (x1, y1) = pts[i], pts[(i + 1) % n]
+            c = (x1 - x0) * (self.yy - y0) - (y1 - y0) * (self.xx - x0)
+            if sign is None:
+                cx = sum(p[0] for p in pts) / n
+                cy = sum(p[1] for p in pts) / n
+                sign = 1 if (x1 - x0) * (cy - y0) - (y1 - y0) * (cx - x0) > 0 else -1
+            m &= c * sign >= 0
+        self._paint(m, col)
+
+    def stroke(self, pts, width, col):
+        """Tykk strek gjennom punktene (rundt pensel)."""
+        np = self.np
+        pts = np.array(pts)
+        for a, b in zip(pts, pts[1:]):
+            steps = max(2, int(np.linalg.norm(b - a) / (width * 0.4)))
+            for t in np.linspace(0, 1, steps):
+                p = a + (b - a) * t
+                self.ellipse(p[0], p[1], width, width, col, wobble=0.15)
+
+    def to_image(self, name):
+        np = self.np
+        rgba = np.concatenate([self.img[::-1], np.ones((self.h, self.w, 1))], axis=2)  # Blender: nederst først
+        img = bpy.data.images.new(name, self.w, self.h)
+        img.pixels.foreach_set(rgba.astype("float32").ravel())
+        img.pack()
+        return img
+
+
+def paint_mona_lisa():
+    import numpy as np
+    W, H = 400, 520
+    c = KidCanvas(W, H, (0.42, 0.50, 0.30), seed=1)
+    a = W / H                                          # bredde i høyde-enheter
+    for k in range(10):                                # himmel og landskap i striper
+        y = k * 0.06
+        c.poly([(0, y), (a, y), (a, y + 0.07), (0, y + 0.07)],
+               (0.55 + 0.03 * k, 0.62 - 0.01 * k, 0.40 - 0.02 * k))
+    c.stroke([(0.05, 0.42), (0.18, 0.36), (0.12, 0.30), (0.22, 0.24)], 0.012, (0.70, 0.60, 0.35))  # sti
+    c.stroke([(0.62, 0.30), (0.70, 0.26), (0.66, 0.20)], 0.012, (0.35, 0.50, 0.60))           # elv
+    c.poly([(0.08, 1.0), (0.17, 0.62), (a - 0.17, 0.62), (a - 0.08, 1.0)], (0.12, 0.09, 0.06))  # kjole
+    c.ellipse(a / 2, 0.36, 0.20, 0.26, (0.16, 0.10, 0.06))                   # hår
+    c.ellipse(a / 2, 0.36, 0.13, 0.18, (0.86, 0.68, 0.45))                   # ansikt
+    c.poly([(a / 2 - 0.07, 0.55), (a / 2 + 0.07, 0.55), (a / 2 + 0.05, 0.64), (a / 2 - 0.05, 0.64)],
+           (0.86, 0.68, 0.45))                                               # hals
+    for dx in (-0.05, 0.05):                                                # øyne
+        c.ellipse(a / 2 + dx, 0.33, 0.022, 0.012, (0.15, 0.10, 0.06))
+    t = np.linspace(-0.05, 0.05, 12)                                        # det mystiske smilet
+    c.stroke([(a / 2 + x, 0.45 - 6 * x * x + 0.004) for x in t], 0.006, (0.55, 0.25, 0.20))
+    c.ellipse(a / 2 - 0.02, 0.88, 0.09, 0.05, (0.86, 0.68, 0.45))           # hender
+    c.ellipse(a / 2 + 0.06, 0.86, 0.09, 0.05, (0.86, 0.68, 0.45))
+    c.stroke([(0.02, 0.02), (a - 0.02, 0.02), (a - 0.02, 0.98), (0.02, 0.98), (0.02, 0.02)],
+             0.012, (0.85, 0.20, 0.25))                                      # barnets rosa ramme
+    return c.to_image("Maleri_Mona_Lisa")
+
+
+def paint_starry_night():
+    import numpy as np
+    W, H = 520, 400
+    c = KidCanvas(W, H, (0.05, 0.12, 0.40), seed=2)
+    a = W / H
+    for k in range(9):                                 # virvlende himmel
+        cx, cy = 0.2 + 0.15 * k, 0.25 + 0.05 * math.sin(k)
+        r0 = 0.05 + 0.02 * (k % 3)
+        pts = [(cx + r0 * (1 + 0.6 * t) * math.cos(6 * t), cy + 0.5 * r0 * (1 + 0.6 * t) * math.sin(6 * t))
+               for t in np.linspace(0, 1.4, 20)]
+        c.stroke(pts, 0.008, (0.35, 0.55, 0.95) if k % 2 else (0.75, 0.85, 1.0))
+    for x, y, r in ((0.15, 0.12, 0.04), (0.42, 0.08, 0.035), (0.62, 0.18, 0.03), (0.85, 0.10, 0.035),
+                    (1.05, 0.22, 0.03), (0.30, 0.30, 0.03), (0.75, 0.36, 0.028)):
+        c.ellipse(x, y, r * 1.8, r * 1.8, (0.95, 0.85, 0.35))                # glorie
+        c.ellipse(x, y, r, r, (1.0, 0.95, 0.55))                             # stjerne
+    c.ellipse(1.2, 0.12, 0.08, 0.08, (1.0, 0.75, 0.15))                      # måne
+    c.ellipse(1.235, 0.10, 0.065, 0.065, (0.05, 0.12, 0.40))
+    c.poly([(0, 0.72), (a, 0.62), (a, 1.0), (0, 1.0)], (0.10, 0.20, 0.35))   # åser
+    for i, x in enumerate((0.55, 0.68, 0.80, 0.92, 1.04)):                   # landsby
+        c.poly([(x, 0.80), (x + 0.09, 0.80), (x + 0.09, 0.90), (x, 0.90)], (0.30, 0.30, 0.45))
+        c.poly([(x - 0.01, 0.80), (x + 0.1, 0.80), (x + 0.045, 0.74)], (0.15, 0.15, 0.30))
+        c.ellipse(x + 0.045, 0.85, 0.012, 0.012, (1.0, 0.85, 0.3))
+    c.poly([(0.08, 1.0), (0.27, 1.0), (0.19, 0.22), (0.16, 0.22)], (0.05, 0.08, 0.04))  # sypress
+    c.stroke([(0.17, 0.95), (0.12, 0.72), (0.2, 0.52), (0.15, 0.32), (0.175, 0.24)], 0.04, (0.08, 0.14, 0.06))
+    c.stroke([(0.2, 0.9), (0.23, 0.7), (0.17, 0.55)], 0.02, (0.12, 0.22, 0.08))
+    c.stroke([(0.02, 0.02), (a - 0.02, 0.02), (a - 0.02, 0.98), (0.02, 0.98), (0.02, 0.02)],
+             0.012, (0.95, 0.55, 0.05))                                      # barnets oransje ramme
+    return c.to_image("Maleri_Stjernenatt")
+
+
+def painting_plane(name, coll, image, parent, size):
+    """Bildeflate med maleriet, litt foran lerretet (forsiden er -Y)."""
+    bm = bmesh.new()
+    uv = bm.loops.layers.uv.new()
+    bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=0.5, calc_uvs=True)
+    bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(math.radians(90), 3, "X"))
+    m = material(f"M_{name}", (1, 1, 1), rough=0.85)
+    tex = m.node_tree.nodes.new("ShaderNodeTexImage")
+    tex.image = image
+    m.node_tree.links.new(tex.outputs["Color"], m.node_tree.nodes["Principled BSDF"].inputs["Base Color"])
+    ob = mesh_object(name, bm, coll, [m])
+    ob.parent = parent
+    ob.location = (0, -0.7, 0)                          # i lerretets lokale (skalerte) rom
+    ob.scale = size
+    return ob
+
+
 def build_set_dressing(coll, pm, metal):
     """Barnas malerverksted: staffelier med malerier, stige, bord med glass og pensler,
     presenning og malingstuber. Alt står utenfor løpeveiene."""
@@ -1781,25 +1912,22 @@ def build_set_dressing(coll, pm, metal):
         ob.rotation_euler = [math.radians(a) for a in rot]
         return ob
 
-    def easel(name, xy, rz, seed):
+    def easel(name, xy, rz, image, landscape):
         root = bpy.data.objects.new(name, None)
         coll.objects.link(root)
         root.location, root.rotation_euler = (*xy, 0), (0, 0, math.radians(rz))
         for i, (x, y, tilt) in enumerate(((-0.35, 0, (-8, -6)), (0.35, 0, (-8, 6)), (0, 0.45, (14, 0)))):
             leg = box(f"{name}_Bein_{i}", (0.05, 0.05, 1.9), (x, y, 0.93), (tilt[0], tilt[1], 0))
             leg.parent = root
-        board = box(f"{name}_Lerret", (0.95, 0.04, 0.75), (0, -0.14, 1.3), (-8, 0, 0), canvas)
+        dims = (0.95, 0.04, 0.75) if landscape else (0.72, 0.04, 0.93)
+        board = box(f"{name}_Lerret", dims, (0, -0.14, 1.35), (-8, 0, 0), canvas)
         board.parent = root
-        rnd = random.Random(seed)
-        for k in range(6):                             # barnemaleri: store fargeklatter
-            blob = blob_mesh(f"{name}_Maleri_{k}", coll, pick(paints, seed + k))
-            blob.parent = board
-            blob.location = (rnd.uniform(-0.38, 0.38), -0.6, rnd.uniform(-0.35, 0.35))
-            blob.scale = (rnd.uniform(0.07, 0.15) / 0.95, 0.2, rnd.uniform(0.07, 0.15) / 0.75)
+        painting_plane(f"{name}_Maleri", coll, image, board, (0.94, 1, 0.94))
         return root
 
-    easel("Staffeli_1", (-5.0, 3.8), 20, 1)
-    easel("Staffeli_2", (6.0, 3.6), -25, 4)
+    # Søster har malt Mona Lisa, broren Van Goghs Stjernenatt
+    easel("Staffeli_Mona_Lisa", (-5.0, 3.8), 20, paint_mona_lisa(), landscape=False)
+    easel("Staffeli_Stjernenatt", (6.0, 3.6), -25, paint_starry_night(), landscape=True)
 
     # Presenning med malingsflekker under staffeliet til venstre
     bm = bmesh.new()
@@ -1813,13 +1941,16 @@ def build_set_dressing(coll, pm, metal):
         d.location = (-5.0 + rnd.uniform(-1.1, 1.1), 3.4 + rnd.uniform(-0.8, 0.8), 0.008)
         d.scale = (rnd.uniform(0.08, 0.2), rnd.uniform(0.08, 0.2), 0.005)
 
-    # Stige som lener seg mot ingenting, klassisk verkstedsilhuett
+    # Stige som lener seg mot bakveggen (der cycloramaen går loddrett opp, y = 7)
     lad = bpy.data.objects.new("Stige", None)
     coll.objects.link(lad)
-    lad.location, lad.rotation_euler = (-6.8, 1.6, 0), (math.radians(-10), 0, math.radians(15))
+    foot_y, length = 5.8, 3.0
+    lean = math.asin((7.0 - 0.05 - foot_y) / length)   # toppen hviler mot veggen
+    lad.location = (-5.6, foot_y, 3.0 - math.sqrt(9.0 - (foot_y - 4.0) ** 2))
+    lad.rotation_euler = (-lean, 0, 0)
     for x in (-0.25, 0.25):
-        box(f"Stige_Vange_{'V' if x < 0 else 'H'}", (0.06, 0.06, 2.4), (x, 0, 1.2)).parent = lad
-    for k in range(7):
+        box(f"Stige_Vange_{'V' if x < 0 else 'H'}", (0.06, 0.06, length), (x, 0, length / 2)).parent = lad
+    for k in range(9):
         box(f"Stige_Trinn_{k}", (0.5, 0.05, 0.04), (0, 0, 0.3 + k * 0.3)).parent = lad
 
     # Bord med vannglass og pensler til høyre
@@ -1843,6 +1974,51 @@ def build_set_dressing(coll, pm, metal):
 def floor_z(y):
     """Gulvhøyden i cycloramaen (flatt til y=4, så bøyer det seg opp mot bakveggen)."""
     return 0.0 if y <= 4.0 else 3.0 - math.sqrt(max(0.0, 9.0 - (y - 4.0) ** 2))
+
+
+# Løpeveier (fra animasjonen) og kamerabaner som plantene må holde seg unna
+PLANT_PATHS = [
+    [(-8.5, -0.4), (-1.2, -0.4)], [(-0.8, 0.4), (-3.0, 0.4), (-13.0, 0.2)],
+    [(8.5, 0.5), (4.5, 3.0), (1.0, 5.0), (-2.5, 5.0), (-3.8, 2.5), (-2.5, 0.0), (-0.2, -1.8)],
+    [(0.6, -2.9), (1.6, -1.0), (0.95, 0.4)], [(7.5, -4.6), (0.55, -5.0)],
+    [(8.5, 0.6), (2.1, 0.35)], [(2.95, 0.95), (1.5, 1.6), (-0.3, 1.9), (-3.0, 1.3), (-13.0, 1.5)],
+    [(-0.5, -2.9), (-2.8, -2.2), (-2.2, 1.6), (-1.2, 2.2), (-0.8, -1.5), (-0.2, -4.3)],
+    [(-10.9, -1.0), (-3.6, -1.0)],                     # følgekameraet bak gutten
+]
+# (x, y, radius): kameraer, møbler, rekvisitter og selve scenen der handlingen skjer
+PLANT_KEEP_OUT = [
+    (-5.0, 4.6, 1.3), (0.9, -4.0, 1.2), (-0.2, -5.35, 1.0), (2.6, -7.6, 1.3), (3.3, -0.6, 1.0),
+    (-1.93, -0.95, 1.0), (3.9, 1.7, 1.0), (-1.45, -0.95, 1.0),
+    (-5.0, 3.8, 1.1), (6.0, 3.6, 1.1), (-5.0, 3.4, 1.3), (-5.6, 5.8, 0.9), (6.4, -1.2, 1.0),
+    (5.3, 5.0, 1.1), (-7.2, 3.4, 0.8), (7.7, 3.2, 1.0), (-6.4, -3.4, 0.6), (4.2, 1.6, 0.9),
+    (3.3, 1.2, 0.6), (-4.5, -0.75, 0.6), (5.0, 0.25, 0.6), (-3.6, 0.5, 0.7), (1.1, -1.95, 0.6),
+]
+
+
+def _seg_dist(p, a, b):
+    ab, ap = b - a, p - a
+    t = max(0.0, min(1.0, ap.dot(ab) / max(ab.length_squared, 1e-9)))
+    return (a + ab * t - p).length
+
+
+def plant_spots(rnd, step=0.85, min_gap=0.8):
+    """Plasser på flatt gulv i et rutenett med litt tilfeldighet, utenfor alt som må holdes fritt."""
+    spots = []
+    y = -7.2
+    while y <= 4.2:
+        x = -9.4
+        while x <= 9.4:
+            p = Vector((x + rnd.uniform(-0.3, 0.3), min(4.2, y + rnd.uniform(-0.3, 0.3))))
+            ok = not (abs(p.x) < 4.3 and p.y < 4.3)         # midten er scenen for handlingen
+            ok = ok and all(_seg_dist(p, Vector(a), Vector(b)) > 1.1
+                            for path in PLANT_PATHS for a, b in zip(path, path[1:]))
+            ok = ok and all((p - Vector((kx, ky))).length > kr for kx, ky, kr in PLANT_KEEP_OUT)
+            ok = ok and all((p - q).length > min_gap for q in spots)
+            if ok and rnd.random() < 0.8:                 # litt luft innimellom
+                spots.append(p)
+            x += step
+        y += step
+    return [(p.x, p.y) for p in spots]
 
 
 def build_furniture(coll):
@@ -1931,14 +2107,16 @@ def build_furniture(coll):
                 lf.rotation_euler = (math.radians(-35), 0, math.radians(a + 90))
         return r
 
-    # Planter langs kantene og i bakgrunnen, utenfor løpeveiene
-    plant("Plante_Bak_Hoy", (-1.3, 6.2), "fiken", 1.1, seed=1)
-    plant("Plante_Bak_Venstre", (-5.9, 5.3), "hoy", 1.2, seed=2)
-    plant("Plante_Bak_Hoyre", (3.2, 5.9), "busk", 1.1, seed=3)
-    plant("Plante_Venstre", (-7.3, -1.4), "fiken", 1.0, seed=4)
-    plant("Plante_Hoyre", (7.6, 0.9), "hoy", 1.0, seed=5)
-    plant("Plante_Hoyre_Foran", (7.0, -3.4), "busk", 0.9, seed=6)
-    plant("Plante_Bord", (6.05, -1.25), "busk", 0.35, seed=7).location.z = 0.745
+    # Rommet fylles med planter, store og små, alle på gulvet. Plassene velges
+    # automatisk utenfor løpeveiene, kamerabanene og møblene (se PLANT_KEEP_OUT).
+    rnd = random.Random(21)
+    spots = plant_spots(rnd)
+    kinds = ("hoy", "busk", "fiken")
+    for i, (x, y) in enumerate(spots):
+        edge = min(1.0, max(0.0, (abs(x) - 4.0) / 4.0))   # større planter ut mot kantene
+        size = rnd.uniform(0.55, 0.85) + 0.75 * edge * rnd.random()
+        kind = kinds[i % 3] if size < 1.1 else rnd.choice(("hoy", "fiken"))
+        plant(f"Plante_{i:02d}", (x, y), kind, size, seed=100 + i)
 
     # Lav trebenk med en pute
     bench = root("Benk", (5.3, 5.0), -20)

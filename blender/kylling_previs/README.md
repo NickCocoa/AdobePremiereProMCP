@@ -40,15 +40,15 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 
 - Hvit cyclorama (gulvet bøyer seg opp i bakveggen), ingen synlig horisont.
 - **Barnas malerverksted** (`build_set_dressing()`):
-  - to staffelier med barnemalerier
+  - to staffelier med barnemalerier: søster har malt Mona Lisa og broren Van Goghs *Stjernenatt*, i barnestrek med fargestift-aktige farger. Skriptet tegner maleriene selv (`paint_mona_lisa()`, `paint_starry_night()`) og pakker dem inn i .blend-filen.
   - presenning med malingsflekker
-  - en stige
+  - en stige som lener seg mot bakveggen
   - et bord med vannglass og pensler
   - malingstuber på trekassa
 
   Alt står utenfor løpeveiene og gir dybde og skala bak handlingen.
 - **Planter og møbler** (`build_furniture()`), i samme rene og enkle stil som Pixars lampeintro: avrundede grunnformer, matte materialer, få varme farger (lyst tre, krem, terrakotta, grønt, sennep og dempet turkis) og god luft rundt hver ting.
-  - **Planter:** sju planter i terrakottapotter (høye bladplanter, runde busker og fiolinfiken), langs kantene, i bakgrunnen og på bordet.
+  - **Planter:** rommet er fylt med over 40 planter i terrakottapotter, store og små (høye bladplanter, runde busker og fiolinfiken). Alle står på gulvet, og de største står ut mot kantene. Plassene velges automatisk (`plant_spots()`) utenfor løpeveiene, kamerabanene og møblene (`PLANT_PATHS`, `PLANT_KEEP_OUT`).
   - **Møbler:** en lav trebenk med pute, en sittesekk og en lav bokhylle med bøker.
   - **Lamper:** en gulvlampe og en bordlampe med varmt lys. De gir en praktisk lyskilde som også lyser i festen.
 
