@@ -25,15 +25,32 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 
 | Figur | Karakter | Kropp | Forside |
 |------|----------|-------|---------|
-| `Gutt` | Gul kylling i oransje snekkerbukse | svart, med hårtust | rød |
-| `Jente` | Gul kylling i korall kjole med sløyfe | hvit, med rosa sløyfe | rød |
+| `Gutt` | Gul kylling i oransje snekkerbukse | svart, med stor bustete hårtust | rød |
+| `Jente` | Gul kylling i korall kjole med sløyfe | hvit, med musefletter, hårbånd med sløyfe og kjole med volang | rød |
 
-- **Kyllingform med barnslige proporsjoner:** eggformet kropp og stort hode, 1,7 m høy, med origo nederst, så squash/stretch skjer fra gulvet. Formene settes av `BODY` og `HEAD` øverst i skriptet. I tillegg har de nebb, føtter og vinger med tre fjærtupper som «hender». Silhuetten og posene er dermed nær det AI-looken skal bli.
-- **Rød forside:** ansiktet og magen er røde, så du alltid ser hvilken vei de ser. Overgangen er myk og styres av materialet (`front_mask_material()`). Malingsdrakten gutten får i balja dekker hode, rygg og skuldre, men aldri forsiden.
-- **Øyne fra første bilde:** store øyne med pupill og lysrefleks. Pupillene følger et blikkmål (`Blikk_Gutt`, `Blikk_Jente`). De ser rett frem som standard, på den andre i relasjonsøyeblikkene og inn i kamera når de smiler til oss. Begge blunker med ujevne mellomrom. Dette styres i `build_acting()`.
-- **Vinger:** begge har vinger gjennom hele sekvensen. De svinger når de løper, og brukes til å øse, kaste, peke, holde spannet, dukke, tørke linsa og klemme. Vingene henger to bilder etter kroppen (follow-through, `wing_drag()`).
-- **Personlighet i bevegelsen:** broren løper tungt og klumsete med lave sprett og mye squash. Søsteren er lett og sprettende med høye sprett og store vingesving. Dette settes i `GAIT`.
-- **Smil:** smilet under nebbet kommer når de smiler i kamera.
+Proporsjonene følger karakterarkene, mens previs-fargene (svart/hvit med rød forside) beholdes:
+- **Kropp:** hodet er omtrent halve høyden, kroppen er liten, og beina er korte og tykke med store, tunge støvler. Formene settes av `BODY` og `HEAD` øverst i skriptet.
+- **Ansikt:** store øyne med brun iris og lysrefleks, kraftige bryn, liten nese, rosa kinn og en munn som skifter form.
+- **Rekvisitter fra prop-arket:** gutten har fastnøkkel og rød tusj i lomma, jenta har pensel og prestekrage.
+- **Vinger:** korte vinger med tre fjærtupper som «hender».
+- **Rød forside:** ansiktet og magen er røde, så du alltid ser hvilken vei de ser. Malingsdrakten gutten får i balja dekker aldri forsiden.
+
+### Animasjonsprinsippene
+
+| Prinsipp | Hva skriptet gjør |
+|----------|-------------------|
+| Squash og stretch | Alle positurer har squash/stretch fra gulvet. Broren squasher mer enn søsteren. |
+| Forventning (anticipation) | Før hvert hopp kommer 3 bilder der figuren krøller seg sammen og lener seg tilbake (`anticipation_and_settle()`). |
+| Follow-through og overlapping action | Etter landing: squash, liten overshoot og ro. Vingene henger 2 bilder etter kroppen (`wing_drag()`). Hår, musefletter og sløyfe svinger etter en fjærsimulering av kroppens akselerasjon (`hair_follow_through()`). |
+| Buer (arcs) | De vagger fra side til side når de løper, så hodet går i buer. Broren vagger mer. |
+| Slow in/out og timing | Ansiktsuttrykkene skifter på 2 bilder og holdes (pose-to-pose). Pauser (`HOLDS`) gir moving holds der figurene puster. |
+| Sekundærhandling | Øynene flytter seg 3 bilder før hodet snur, med et blunk i snuingen. I tillegg er det tilfeldige blunk. |
+| Overdrivelse og appeal | Bryn og munn har ti uttrykk (`EXPR`): nøytral, glad, latter, overrasket, sjokk, sint, bestemt, lur, bekymret og knip. De styres av `EXPR_TIMELINE` gjennom hele historien. |
+| Staging og ingen «twinning» | Når de gjør det samme samtidig, kommer søsteren 3 bilder etter (`break_twinning()`), og piruetten snurrer hun motsatt vei. |
+| Vekt og kontakt | Støvlene tråkker: den som står, glir bakover i forhold til kroppen mens den andre løftes frem, så føttene ikke glir over gulvet. |
+| Personlighet | Broren er tung og klumsete, søsteren lett og sprettende (`GAIT`). |
+
+- **Blikk:** pupillene ser rett frem som standard, på den andre i relasjonsøyeblikkene og inn i kamera når de smiler til oss (`build_acting()`).
 - **Navneskilt:** skiltet over hodet vises bare i viewport, ikke i render.
 
 ## Verkstedet

@@ -28,7 +28,7 @@ from contextlib import contextmanager
 
 import bmesh
 import bpy
-from mathutils import Matrix, Quaternion, Vector
+from mathutils import Euler, Matrix, Quaternion, Vector
 
 FPS = 24
 FRAME_START = 1
@@ -46,9 +46,13 @@ CHAR_H = 1.7   # høyde
 FRONT = CHAR_D / 2  # omtrentlig avstand fra senter til forsiden
 LEAN = 0.7     # demper lening, høye figurer vipper mye i toppen
 # Ellipsoider (senter-z, radius x, radius y, radius z)
-BODY = (0.55, 0.36, 0.30, 0.55)
-HEAD = (1.30, 0.40, 0.32, 0.40)
-EYE_Z = 1.40   # øyehøyde, kameraer og fokus sikter hit
+# Proporsjoner fra karakterarkene: hodet er omtrent halve høyden, liten kropp,
+# korte tykke bein og store tunge støvler.
+BODY = (0.52, 0.34, 0.30, 0.32)
+HEAD = (1.12, 0.46, 0.40, 0.50)
+EYE_Z = 1.20   # øyehøyde, kameraer og fokus sikter hit
+MOUTH_Z = 0.96
+LIE_LIFT = HEAD[2] + 0.02 - 0.25  # ekstra høyde når de ligger, så det store hodet ikke går i gulvet
 
 # Farger (lineære RGB)
 RED = (0.80, 0.03, 0.03)
@@ -186,6 +190,7 @@ def key(ob, f, loc=None, rot=None, scale=None):
 
 
 _last_rz = {}
+POSE_LOG = {}  # figurnavn -> liste med positurer, brukes til forventning og settle
 
 
 def pose(ob, f, x, y, z=0.0, rx=0.0, rz=0.0, sq=1.0, raw=False, spin=False, ry=0.0):
@@ -200,6 +205,9 @@ def pose(ob, f, x, y, z=0.0, rx=0.0, rz=0.0, sq=1.0, raw=False, spin=False, ry=0
         rz = prev + (rz - prev + 180.0) % 360.0 - 180.0
     _last_rz[ob.name] = rz
     xy = 1.0 / math.sqrt(sq)
+    if raw:                                            # det store hodet skal ikke gå gjennom gulvet
+        z += LIE_LIFT * abs(math.sin(math.radians(rx)))
+    POSE_LOG.setdefault(ob.name, []).append((f, x, y, z, rx if raw else rx * LEAN, ry, rz, sq, raw))
     key(ob, f, loc=(x, y, z), rot=(rx if raw else rx * LEAN, ry, rz), scale=(xy, xy, sq))
 
 
@@ -332,44 +340,87 @@ def build_character(name, label, body_color, coll, label_coll):
     ])
     smooth(ob)
 
-    orange = bpy.data.materials.get("M_Nebb") or material("M_Nebb", (1.0, 0.42, 0.02), rough=0.35)
-    # Nebb som peker fremover
-    bm = bmesh.new()
-    bmesh.ops.create_cone(bm, cap_ends=True, segments=16, radius1=0.085, radius2=0.0, depth=0.17)
-    bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(math.radians(90), 3, "X"))
-    beak = mesh_object(f"{name}_Nebb", bm, coll, [orange])
-    smooth(beak)
-    beak.parent = ob
-    p, _ = surface_point(0, 1.24)
-    beak.location = (0, p.y - 0.05, 1.24)
-    # Føtter
+    orange = bpy.data.materials.get("M_Nese") or material("M_Nese", (1.0, 0.42, 0.18), rough=0.35)
+    blush = bpy.data.materials.get("M_Rodme") or material("M_Rodme", (1.0, 0.35, 0.35), rough=0.6)
+    boot_mat = bpy.data.materials.get("M_Stovel") or material("M_Stovel", (0.32, 0.16, 0.07), rough=0.55)
+    sole_mat = bpy.data.materials.get("M_Sale") or material("M_Sale", (0.10, 0.06, 0.03), rough=0.7)
+    # Liten nese og rosa kinn
+    p, n = surface_point(0, 1.09)
+    nose = blob_mesh(f"{name}_Nese", coll, orange)
+    nose.parent, nose.location, nose.scale = ob, p - n * 0.015, (0.05, 0.035, 0.035)
     for side in (-1, 1):
-        foot = blob_mesh(f"{name}_Fot_{'V' if side < 0 else 'H'}", coll, orange)
-        foot.parent = ob
-        foot.location = (0.15 * side, -0.14, 0.03)
-        foot.scale = (0.11, 0.17, 0.035)
+        p, n = surface_point(42 * side, 1.02)
+        ck = blob_mesh(f"{name}_Kinn_{'V' if side < 0 else 'H'}", coll, blush)
+        ck.parent, ck.location = ob, p - n * 0.01
+        ck.rotation_euler = n.to_track_quat("-Y", "Z").to_euler()
+        ck.scale = (0.1, 0.012, 0.075)
+    # Korte bein og store støvler (støvlene tråkker, se run())
+    boots = {}
+    for side in (-1, 1):
+        tag = "V" if side < 0 else "H"
+        leg = cyl_mesh(f"{name}_Bein_{tag}", coll, 0.075, 0.07, 0.22, ob.data.materials[0])
+        leg.parent, leg.location = ob, (0.15 * side, 0, 0.12)
+        boot = blob_mesh(f"{name}_Stovel_{tag}", coll, boot_mat)
+        boot.parent, boot.location, boot.scale = ob, (0.15 * side, -0.06, 0.085), (0.135, 0.21, 0.09)
+        sole = blob_mesh(f"{boot.name}_Sale", coll, sole_mat)
+        sole.parent, sole.location, sole.scale = boot, (0, 0, -0.55), (1.05, 1.03, 0.35)
+        boots[side] = boot
+    BOOTS[name] = boots
 
-    if name == "Jente":                                # sløyfe på hodet
+    # Hår og tilbehør henger på svingpunkter som får etterslep (se hair_follow_through())
+    top = HEAD[0] + HEAD[3]
+    pivots = []
+    if name == "Jente":                                # musefletter, hårbånd med sløyfe, kjole
         bow = bpy.data.materials.get("M_Sloyfe") or material("M_Sloyfe", (1.0, 0.25, 0.3), rough=0.4)
         for side in (-1, 1):
+            tag = "V" if side < 0 else "H"
+            pv = empty(f"{name}_Flette_Pivot_{tag}", coll, (0.4 * side, 0.05, 1.32), ob)
+            for k in range(5):                         # dusk av hårstrå
+                a = math.radians(-60 + k * 30)
+                tuft = blob_mesh(f"{name}_Flette_{tag}_{k}", coll, ob.data.materials[0])
+                tuft.parent = pv
+                tuft.location = (side * 0.13 * math.cos(a) + side * 0.06, 0, 0.13 * math.sin(a))
+                tuft.scale = (0.12, 0.05, 0.035)
+                tuft.rotation_euler = (0, -side * a, 0)
+            pivots.append(pv)
+        pv = empty(f"{name}_Sloyfe_Pivot", coll, (0, 0.0, top - 0.05), ob)
+        band = cyl_mesh(f"{name}_Haarbaand", coll, HEAD[1] - 0.06, HEAD[1] - 0.09, 0.07, bow, segs=48, caps=False)
+        band.modifiers.new("Tykkelse", "SOLIDIFY").thickness = 0.02
+        band.parent, band.location = ob, (0, 0.04, top - 0.16)
+        band.scale = (1.0, (HEAD[2] + 0.012) / (HEAD[1] + 0.012) * 0.9, 1.0)
+        band.rotation_euler = (math.radians(-18), 0, 0)
+        for side in (-1, 1):
             b = blob_mesh(f"{name}_Sloyfe_{'V' if side < 0 else 'H'}", coll, bow)
-            b.parent = ob
-            b.location = (0.11 * side, 0.02, HEAD[0] + HEAD[3] - 0.02)
-            b.scale = (0.11, 0.05, 0.075)
+            b.parent = pv
+            b.location = (0.12 * side, 0.0, 0.02)
+            b.scale = (0.12, 0.05, 0.08)
             b.rotation_euler = (0, math.radians(-20 * side), 0)
         knot = blob_mesh(f"{name}_Sloyfe_Knute", coll, bow)
-        knot.parent = ob
-        knot.location = (0, 0.02, HEAD[0] + HEAD[3] - 0.01)
-        knot.scale = (0.045, 0.05, 0.045)
-    else:                                              # hårtust på toppen
-        for i, (x, tilt) in enumerate(((-0.06, -25), (0.0, 0), (0.06, 25))):
+        knot.parent, knot.location, knot.scale = pv, (0, 0.0, 0.0), (0.05, 0.05, 0.05)
+        pivots.append(pv)
+        # Kjole med volang: kort, utsvingt skjørt i kroppsfarge med rød forside
+        skirt = cyl_mesh(f"{name}_Kjole", coll, 0.44, 0.33, 0.3, ob.data.materials[1], segs=48)
+        skirt.parent, skirt.location = ob, (0, 0, 0.22)
+        ruffle = cyl_mesh(f"{name}_Volang", coll, 0.47, 0.44, 0.05, ob.data.materials[1], segs=48)
+        ruffle.parent, ruffle.location = ob, (0, 0, 0.2)
+    else:                                              # stor, bustete hårtust
+        pv = empty(f"{name}_Tust_Pivot", coll, (0, 0.03, top - 0.06), ob)
+        rnd = random.Random(3)
+        for i in range(9):
+            tilt_x, tilt_y = rnd.uniform(-35, 20), -50 + i * 12.5
             bm = bmesh.new()
-            bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=0.035, radius2=0.0, depth=0.16)
-            bmesh.ops.translate(bm, vec=(0, 0, 0.08), verts=bm.verts)
+            h = rnd.uniform(0.18, 0.3)
+            bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=0.04, radius2=0.0, depth=h)
+            bmesh.ops.translate(bm, vec=(0, 0, h / 2), verts=bm.verts)
             tuft = mesh_object(f"{name}_Tust_{i}", bm, coll, [ob.data.materials[0]])
-            tuft.parent = ob
-            tuft.location = (x, 0.0, HEAD[0] + HEAD[3] - 0.04)
-            tuft.rotation_euler = (math.radians(-10), math.radians(tilt), 0)
+            tuft.parent = pv
+            tuft.location = (rnd.uniform(-0.05, 0.05), rnd.uniform(-0.04, 0.04), 0)
+            tuft.rotation_euler = (math.radians(tilt_x), math.radians(tilt_y), 0)
+        pivots.append(pv)
+    HAIR[name] = pivots
+
+    # Rekvisitter fra prop-arket i lomma
+    props_in_pocket(ob, coll)
 
     # Navneskilt over hodet (kun i viewport, ikke i render)
     cu = bpy.data.curves.new(f"{name}_Navn", "FONT")
@@ -389,6 +440,55 @@ def build_character(name, label, body_color, coll, label_coll):
 
 
 ARMS = {}  # figurnavn -> {-1: venstre arm, 1: høyre arm}
+BOOTS = {}  # figurnavn -> {-1: venstre støvel, 1: høyre støvel}
+HAIR = {}   # figurnavn -> svingpunkter for hår og tilbehør
+
+
+def cyl_mesh(name, coll, r1, r2, h, mat, segs=24, caps=True):
+    """Sylinder/kjegle med origo nederst (caps=False gir et åpent rør, f.eks. et bånd)."""
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=caps, segments=segs, radius1=r1, radius2=r2, depth=h)
+    bmesh.ops.translate(bm, vec=(0, 0, h / 2), verts=bm.verts)
+    ob = mesh_object(name, bm, coll, [mat])
+    smooth(ob)
+    return ob
+
+
+def props_in_pocket(ob, coll):
+    """Gutten: fastnøkkel og rød tusj i lomma. Jenta: pensel og prestekrage."""
+    metal = bpy.data.materials.get("M_Prop_Metall") or material("M_Prop_Metall", (0.7, 0.7, 0.72), 0.3, 1.0)
+    red = bpy.data.materials.get("M_Prop_Rod") or material("M_Prop_Rod", (0.85, 0.05, 0.05), 0.35)
+    wood = bpy.data.materials.get("M_Prop_Skaft") or material("M_Prop_Skaft", (0.85, 0.15, 0.1), 0.5)
+    bristle = bpy.data.materials.get("M_Prop_Bust") or material("M_Prop_Bust", (0.45, 0.28, 0.12), 0.7)
+    petal = bpy.data.materials.get("M_Prop_Kronblad") or material("M_Prop_Kronblad", (0.95, 0.95, 0.92), 0.5)
+    yellow = bpy.data.materials.get("M_Prop_Gul") or material("M_Prop_Gul", (1.0, 0.75, 0.05), 0.5)
+    pocket = lambda side: surface_point(32 * side, 0.6)
+    if ob.name == "Gutt":
+        p, n = pocket(-1)                              # fastnøkkel
+        w = cyl_mesh(f"{ob.name}_Fastnokkel", coll, 0.02, 0.02, 0.2, metal, segs=8)
+        w.parent, w.location = ob, p - n * 0.02 + Vector((0, 0, -0.05))
+        head = blob_mesh(f"{ob.name}_Fastnokkel_Hode", coll, metal)
+        head.parent, head.location, head.scale = w, (0, 0, 0.2), (0.045, 0.015, 0.035)
+        p, n = pocket(1)                               # rød tusj
+        pen = cyl_mesh(f"{ob.name}_Tusj", coll, 0.022, 0.022, 0.17, red, segs=10)
+        pen.parent, pen.location = ob, p - n * 0.02 + Vector((0, 0, -0.04))
+    else:
+        p, n = pocket(1)                               # pensel
+        br = cyl_mesh(f"{ob.name}_Pensel", coll, 0.012, 0.012, 0.22, wood, segs=8)
+        br.parent, br.location = ob, p - n * 0.02 + Vector((0, 0, -0.05))
+        tip = blob_mesh(f"{ob.name}_Pensel_Bust", coll, bristle)
+        tip.parent, tip.location, tip.scale = br, (0, 0, 0.24), (0.025, 0.015, 0.04)
+        p, n = pocket(-1)                              # prestekrage
+        f = blob_mesh(f"{ob.name}_Prestekrage", coll, yellow)
+        f.parent, f.location, f.scale = ob, p - n * 0.04 + Vector((0, 0, 0.08)), (0.025, 0.012, 0.025)
+        f.rotation_euler = n.to_track_quat("-Y", "Z").to_euler()
+        for k in range(8):
+            a = math.radians(k * 45)
+            pt = blob_mesh(f"{ob.name}_Prestekrage_{k}", coll, petal)
+            pt.parent = f
+            pt.location = (math.cos(a) * 2.2, 0, math.sin(a) * 2.2)
+            pt.scale = (1.4, 0.5, 0.55)
+            pt.rotation_euler = (0, -a, 0)
 
 
 def build_arms(ob, coll):
@@ -397,18 +497,18 @@ def build_arms(ob, coll):
     arms = {}
     for side in (-1, 1):
         bm = bmesh.new()
-        ellipsoid_bm(bm, (0.27, 0.085, 0.05, 0.29), segs=(16, 10))
+        ellipsoid_bm(bm, (0.19, 0.08, 0.055, 0.21), segs=(16, 10))
         arm = mesh_object(f"{ob.name}_Vinge_{'V' if side < 0 else 'H'}", bm, coll, [ob.data.materials[0]])
         smooth(arm)
         arm.parent = ob
-        arm.location = (side * (BODY[1] + 0.04), 0, 0.84)
+        arm.location = (side * (BODY[1] + 0.05), 0, 0.62)
         for k, tilt in enumerate((-28, 0, 28)):        # tre fjærtupper
             bm = bmesh.new()
             ellipsoid_bm(bm, (0.07, 0.045, 0.03, 0.09), segs=(12, 8))
             tip = mesh_object(f"{arm.name}_Fjaer_{k}", bm, coll, [ob.data.materials[0]])
             smooth(tip)
             tip.parent = arm
-            tip.location = (0.0, 0, 0.5)
+            tip.location = (0.0, 0, 0.36)
             tip.rotation_euler = (0, math.radians(tilt), 0)
         arms[side] = arm
     ARMS[ob.name] = arms
@@ -572,8 +672,8 @@ def build_paint_coat(target, coll, mat, f_on):
     ob.parent = target
     pop(ob, f_on, overshoot=1.06)
     # Noen fargeflekker på den røde forsiden i stedet for full drakt
-    for i, (xz, size) in enumerate((((-0.24, 1.58), (0.1, 0.08)), ((0.2, 0.75), (0.1, 0.12)),
-                                    ((-0.12, 0.45), (0.12, 0.09)))):
+    for i, (xz, size) in enumerate((((-0.22, 1.42), (0.1, 0.08)), ((0.2, 0.7), (0.1, 0.12)),
+                                    ((-0.12, 0.45), (0.1, 0.08)))):
         splat_on(target, f"Gutt_Forside_Flekk_{i}", coll, pick(mats, i + 1), f_on, xz, size=size)
     return ob
 
@@ -604,26 +704,137 @@ def paint_blend_material(name, mats):
     return m
 
 
-def build_smile(target, coll, f_on, prefix, depth=None):
-    """Smil under nebbet, dukker opp når de smiler i kamera."""
-    white = bpy.data.materials.get("M_Smil") or material("M_Smil", (0.95, 0.95, 0.95), rough=0.3)
-    cu = bpy.data.curves.new(f"{prefix}_Smil", "CURVE")
+def _curve(name, coll, pts, bevel, mat):
+    cu = bpy.data.curves.new(name, "CURVE")
     cu.dimensions = "3D"
-    cu.bevel_depth = 0.018
+    cu.bevel_depth = bevel
     sp = cu.splines.new("POLY")
-    n = 9
-    sp.points.add(n - 1)
-    for i, p in enumerate(sp.points):
-        a = math.pi + 0.35 + i * (math.pi - 0.7) / (n - 1)
-        x, z = 0.12 * math.cos(a), 0.07 * math.sin(a)
-        y = surface_point(math.degrees(math.asin(x / 0.38)), 1.14 + z)[0].y - 0.01
-        p.co = (x, y, z, 1.0)
-    smile = bpy.data.objects.new(f"{prefix}_Smil", cu)
-    coll.objects.link(smile)
-    cu.materials.append(white)
-    smile.parent = target
-    smile.location = (0, 0, 1.14)
-    pop(smile, f_on)
+    sp.points.add(len(pts) - 1)
+    for p, c in zip(sp.points, pts):
+        p.co = (*c, 1.0)
+    ob = bpy.data.objects.new(name, cu)
+    coll.objects.link(ob)
+    cu.materials.append(mat)
+    return ob
+
+
+def _on_surface(name, coll, target, phi, z, inset=0.0):
+    """Tomt svingpunkt på kroppens overflate, rettet langs normalen (lokal -Y ut)."""
+    p, n = surface_point(phi, z)
+    pv = empty(name, coll, tuple(p - n * inset), target)
+    pv.rotation_euler = n.to_track_quat("-Y", "Z").to_euler()
+    return pv
+
+
+# Uttrykk: bryn (løft, vinkel innerst ned) og munn (form, skala)
+EXPR = {
+    "noytral":  dict(brow=(0.0, 0), mouth="smil", ms=(0.7, 0.6)),
+    "glad":     dict(brow=(0.025, -4), mouth="smil", ms=(1.0, 1.0)),
+    "latter":   dict(brow=(0.035, -8), mouth="aapen", ms=(1.0, 1.0)),
+    "overrask": dict(brow=(0.075, -4), mouth="o", ms=(1.0, 1.0)),
+    "sjokk":    dict(brow=(0.085, -12), mouth="o", ms=(1.3, 1.5)),
+    "sint":     dict(brow=(-0.02, 24), mouth="smil", ms=(0.8, -0.8)),
+    "bestemt":  dict(brow=(-0.012, 14), mouth="smil", ms=(0.8, 0.15)),
+    "lur":      dict(brow=(0.01, 10), mouth="smil", ms=(0.85, 0.7), sly=True),
+    "bekymret": dict(brow=(0.04, -20), mouth="o", ms=(0.6, 0.5)),
+    "knip":     dict(brow=(-0.03, 8), mouth="smil", ms=(0.7, 0.15)),
+}
+FACE = {}  # figurnavn -> dict med bryn og munner
+
+
+def build_face_rig(target, coll):
+    """Bryn og munner fra arkene: kraftige bryn, åpent smil med to fortenner og tunge."""
+    brown = bpy.data.materials.get("M_Bryn") or material("M_Bryn", (0.12, 0.06, 0.02), rough=0.6)
+    dark = bpy.data.materials.get("M_Munn") or material("M_Munn", (0.22, 0.02, 0.03), rough=0.5)
+    tongue = bpy.data.materials.get("M_Tunge") or material("M_Tunge", (0.95, 0.35, 0.4), rough=0.4)
+    tooth = bpy.data.materials.get("M_Tann") or material("M_Tann", (0.97, 0.96, 0.92), rough=0.3)
+    rig = {"brows": {}}
+    for side in (-1, 1):
+        tag = "V" if side < 0 else "H"
+        pv = _on_surface(f"{target.name}_Bryn_Pivot_{tag}", coll, target, 19 * side, EYE_Z + 0.16, inset=-0.01)
+        pts = [(0.075 * math.cos(a), 0, 0.025 * math.sin(a)) for a in [math.pi * (1 - k / 8) for k in range(9)]]
+        brow = _curve(f"{target.name}_Bryn_{tag}", coll, pts, 0.016, brown)
+        brow.parent = pv
+        rig["brows"][side] = brow
+    mp = _on_surface(f"{target.name}_Munn_Pivot", coll, target, 0, MOUTH_Z, inset=-0.005)
+    smile_pts = []
+    for k in range(11):
+        a = math.pi + 0.35 + k * (math.pi - 0.7) / 10
+        smile_pts.append((0.15 * math.cos(a), 0.012 * abs(math.cos(a)), 0.08 * math.sin(a) + 0.04))
+    smile = _curve(f"{target.name}_Munn_Smil", coll, smile_pts, 0.016, dark)
+    smile.parent = mp
+    opened = blob_mesh(f"{target.name}_Munn_Aapen", coll, dark)
+    opened.parent, opened.location = mp, (0, 0, -0.02)
+    for name, mat, loc, sc in ((f"{target.name}_Tunge", tongue, (0, -0.25, -0.45), (0.6, 0.4, 0.4)),
+                               (f"{target.name}_Tann_V", tooth, (-0.11, -0.5, 0.58), (0.12, 0.35, 0.36)),
+                               (f"{target.name}_Tann_H", tooth, (0.11, -0.5, 0.58), (0.12, 0.35, 0.36))):
+        part = blob_mesh(name, coll, mat)
+        part.parent, part.location, part.scale = opened, loc, sc
+    o_mouth = blob_mesh(f"{target.name}_Munn_O", coll, dark)
+    o_mouth.parent, o_mouth.location = mp, (0, 0, -0.01)
+    rig.update(smile=smile, aapen=opened, o=o_mouth)
+    FACE[target.name] = rig
+
+
+def animate_expressions(ob_name, timeline):
+    """Uttrykkene skifter raskt (2 bilder) og holdes til neste: pose-to-pose i ansiktet."""
+    rig = FACE[ob_name]
+    full = {"smil": None, "aapen": (0.2, 0.03, 0.1), "o": (0.055, 0.03, 0.065)}
+    prev = None
+    for f, state in timeline:
+        for when, st in (((f - 2), prev), (f, state)):
+            if st is None:
+                continue
+            e = EXPR[st]
+            lift, tilt = e["brow"]
+            for side, brow in rig["brows"].items():
+                l, t = lift, tilt
+                if e.get("sly"):                       # det ene brynet høyt, det andre lavt
+                    l, t = (0.06, -6) if side < 0 else (-0.01, 16)
+                brow.location = (0, 0, l)
+                brow.rotation_euler = (0, math.radians(-t * side), 0)
+                brow.keyframe_insert("location", frame=when)
+                brow.keyframe_insert("rotation_euler", frame=when)
+            for shape in ("smil", "aapen", "o"):
+                obj = rig["smile" if shape == "smil" else shape]
+                on = e["mouth"] == shape
+                if shape == "smil":
+                    sx, sz = e["ms"]
+                    obj.scale = (sx, 1, sz) if on else (0, 0, 0)
+                    obj.rotation_euler = (0, math.radians(8 if e.get("sly") else 0), 0)
+                    obj.keyframe_insert("rotation_euler", frame=when)
+                else:
+                    sx, sz = e["ms"]
+                    obj.scale = (full[shape][0] * sx, full[shape][1], full[shape][2] * sz) if on else (0, 0, 0)
+                obj.keyframe_insert("scale", frame=when)
+        prev = state
+    for obj in (rig["smile"], rig["aapen"], rig["o"]):  # munnen bytter form momentant
+        for fc in fcurves_of(obj):
+            if fc.data_path == "scale":
+                for kp in fc.keyframe_points:
+                    kp.interpolation = "CONSTANT"
+
+
+# Uttrykkstidslinje gjennom hele historien (opprinnelige frames)
+EXPR_TIMELINE = {
+    "Gutt": [(1, "glad"), (76, "overrask"), (88, "latter"), (100, "glad"), (122, "latter"), (152, "bestemt"),
+             (204, "latter"), (216, "glad"), (224, "overrask"), (230, "sjokk"), (286, "bekymret"),
+             (296, "sint"), (308, "lur"), (318, "latter"), (372, "glad"), (384, "bekymret"), (390, "sjokk"),
+             (470, "bestemt"), (578, "sjokk"), (594, "latter"), (620, "glad"), (664, "sint"), (680, "bestemt"),
+             (726, "lur"), (746, "sjokk"), (752, "latter"), (790, "noytral"), (866, "latter"), (892, "glad"),
+             (906, "latter"), (946, "glad"), (990, "overrask"), (1003, "latter"), (1024, "lur"),
+             (1050, "bestemt"), (1064, "lur"), (1073, "sjokk"), (1078, "knip"), (1094, "bekymret"),
+             (1100, "glad"), (1130, "lur"), (1142, "latter"), (1172, "bestemt"), (1260, "latter"),
+             (1298, "overrask"), (1310, "latter")],
+    "Jente": [(1, "glad"), (196, "lur"), (227, "bestemt"), (232, "latter"), (316, "glad"), (324, "overrask"),
+              (326, "sjokk"), (336, "sint"), (356, "overrask"), (360, "lur"), (382, "bestemt"), (398, "latter"),
+              (460, "glad"), (562, "sjokk"), (586, "latter"), (620, "glad"), (660, "lur"), (672, "latter"),
+              (733, "bekymret"), (738, "knip"), (764, "bestemt"), (786, "glad"), (792, "latter"),
+              (800, "lur"), (810, "glad"), (852, "overrask"), (868, "latter"), (892, "glad"),
+              (910, "latter"), (946, "glad"), (990, "lur"), (998, "latter"), (1050, "glad"),
+              (1066, "overrask"), (1080, "latter"), (1100, "glad"), (1220, "latter"), (1298, "overrask"),
+              (1310, "latter")],
+}
 
 
 EYES = {}  # figurnavn -> liste med øyeobjekter (hvite og pupiller) til blunking
@@ -632,15 +843,15 @@ EYES = {}  # figurnavn -> liste med øyeobjekter (hvite og pupiller) til blunkin
 def build_face(target, coll, gaze):
     """Store øyne fra første bilde. Pupillene følger blikkmålet `gaze`."""
     white = bpy.data.materials.get("M_Oyehvitt") or material("M_Oyehvitt", (0.95, 0.95, 0.95), rough=0.2)
-    black = bpy.data.materials.get("M_Pupill") or material("M_Pupill", (0.01, 0.01, 0.01), rough=0.15)
+    black = bpy.data.materials.get("M_Pupill") or material("M_Pupill", (0.12, 0.05, 0.015), rough=0.15)  # brun iris
     parts = []
     for side in (-1, 1):
         tag = "V" if side < 0 else "H"
-        p, n = surface_point(18 * side, EYE_Z)
+        p, n = surface_point(19 * side, EYE_Z)
         eye = blob_mesh(f"{target.name}_Oye_{tag}", coll, white)
         eye.parent = target
         eye.location = p - n * 0.02
-        eye.scale = (0.075, 0.06, 0.09)
+        eye.scale = (0.095, 0.07, 0.115)
         pivot = bpy.data.objects.new(f"{target.name}_Oyepivot_{tag}", None)
         coll.objects.link(pivot)
         pivot.parent = target
@@ -650,8 +861,8 @@ def build_face(target, coll, gaze):
         c.influence = 0.55                             # pupillen holder seg foran på øyet
         pupil = blob_mesh(f"{target.name}_Pupill_{tag}", coll, black)
         pupil.parent = pivot
-        pupil.location = (0, -0.06, 0)
-        pupil.scale = (0.04, 0.025, 0.048)
+        pupil.location = (0, -0.07, 0)
+        pupil.scale = (0.052, 0.03, 0.062)
         glint = blob_mesh(f"{target.name}_Glans_{tag}", coll, white)  # lysrefleks gir liv
         glint.parent = pupil
         glint.location = (0.35, -0.9, 0.4)
@@ -681,13 +892,20 @@ def heading(dx, dy):
 
 
 # Personlighet i gangen: broren tung og klumsete, søsteren lett og sprettende
-GAIT = {"Gutt": dict(hop=0.75, lean=0.85, swing=32, squash=1.4),
-        "Jente": dict(hop=1.3, lean=1.1, swing=55, squash=0.8)}
+GAIT = {"Gutt": dict(hop=0.75, lean=0.85, swing=32, squash=1.4, waddle=7),
+        "Jente": dict(hop=1.3, lean=1.1, swing=55, squash=0.8, waddle=3)}
+BOOT_REST = (0.15, -0.06, 0.085)
+
+
+def key_boot(ob, side, f, y_off=0.0, lift=0.0):
+    boot = BOOTS[ob.name][side]
+    boot.location = (BOOT_REST[0] * side, BOOT_REST[1] + y_off, BOOT_REST[2] + lift)
+    boot.keyframe_insert("location", frame=f)
 
 
 def run(ob, f0, f1, path, stride=6, lean=22, hop=0.16):
     """Løp langs en polylinje med jevn fart og sprett hvert halve steg."""
-    gait = GAIT.get(ob.name, dict(hop=1.0, lean=1.0, swing=45, squash=1.0))
+    gait = GAIT.get(ob.name, dict(hop=1.0, lean=1.0, swing=45, squash=1.0, waddle=0))
     hop, lean = hop * gait["hop"], lean * gait["lean"]
     pts = [Vector((x, y, 0.0)) for x, y in path]
     segs = list(zip(pts, pts[1:]))
@@ -706,10 +924,20 @@ def run(ob, f0, f1, path, stride=6, lean=22, hop=0.16):
         up = i % 2 == 1 and i < n
         f = round(f0 + (f1 - f0) * t)
         sq = 0.06 * gait["squash"]
-        pose(ob, f, p.x, p.y, hop if up else 0.0, lean, rz, 1 + sq if up else 1 - sq)
+        c = math.cos(math.pi * i / 2)
+        waddle = gait["waddle"] * c                    # vagger fra side til side (buer i hodet)
+        pose(ob, f, p.x, p.y, hop if up else 0.0, lean, rz, 1 + sq if up else 1 - sq, ry=waddle)
         if ob.name in ARMS:                            # armene svinger i takt med stegene
-            sw = gait["swing"] * math.cos(math.pi * i / 2)
+            sw = gait["swing"] * c
             arm_key(ob, f, (sw, -165, 0), (-sw, 165, 0))
+        if ob.name in BOOTS:                           # støvlene tråkker: den som står, glir bakover
+            reach = min(0.28, total / n)               # i lokalt rom mens kroppen går fremover
+            key_boot(ob, -1, f, -reach * c, 0.09 if i % 4 == 3 else 0.0)
+            key_boot(ob, 1, f, reach * c, 0.09 if i % 4 == 1 else 0.0)
+    if ob.name in BOOTS:                               # stå i ro før og etter løpet
+        for side in (-1, 1):
+            key_boot(ob, side, f0 - 2)
+            key_boot(ob, side, f1 + 3)
 
 
 def animate_boy(b):
@@ -882,8 +1110,8 @@ def animate_girl(g):
     P(626, -0.5, -2.9, 0, 0, 0, 0.8)
     P(630, -0.5, -2.9, 0, 0, 0, 1.0)
     P(634, -0.5, -2.9, 0, 0, 0, 0.85)
-    P(640, -0.5, -2.9, 0.7, 0, 180, 1.15, spin=True)
-    P(646, -0.5, -2.9, 0, 0, 360, 0.8, spin=True)
+    P(642, -0.5, -2.9, 0.75, 0, -180, 1.18, spin=True)   # snurrer motsatt vei og litt etter ham
+    P(648, -0.5, -2.9, 0, 0, -360, 0.8, spin=True)
     P(650, -0.2, -2.9, 0, 0, 370, 0.9)                 # side-dunk
     P(656, -0.5, -2.9, 0, 0, 360, 1.0)
 
@@ -1253,7 +1481,7 @@ def build_paint_fx(coll, pm, boy, girl, cam_end):
 
     # Gutten kaster tilbake: treffer jenta
     throw_blob("Klatt_GuttTilJente", coll, pm["Lilla"], (-0.35, 0.4, 1.75), (1.62, 0.35, 1.1), 316, 326)
-    splat_on(girl, "Flekk_Jente", coll, pm["Lilla"], 326, (0.12, 0.75))
+    splat_on(girl, "Flekk_Jente", coll, pm["Lilla"], 326, (0.12, 0.68))
     splash("Sprut_Jente", coll, pm["Lilla"], (1.6, 0.25, 1.1), 326, toward_x=-1, seed=24)
     floor_puddle("Dam_Jente", coll, pm["Lilla"], (1.5, -0.1), 328, size=0.3)
 
@@ -1274,7 +1502,7 @@ def build_paint_fx(coll, pm, boy, girl, cam_end):
     splat_on(girl, "Flekk_Jente_Hoppeklem", coll, pm["Lime"], PLAY + 13, (0, 0.85), size=(0.14, 0.12), phi=100)
     # Pladask: han lander med ansiktet i en dam og får maling i fjeset
     floor_puddle("Dam_Pladask", coll, pm["Rosa"], (-1.5, -5.0), 742, size=0.55, grow=4)
-    for i, (xz, col) in enumerate((((-0.18, 1.56), "Rosa"), ((0.16, 1.3), "Rosa"), ((0.05, 0.6), "Gul"))):
+    for i, (xz, col) in enumerate((((-0.15, 1.42), "Rosa"), ((0.22, 1.12), "Rosa"), ((0.05, 0.55), "Gul"))):
         splat_on(boy, f"Flekk_Gutt_Pladask_{i}", coll, pm[col], PLAY + 76, xz, size=(0.11, 0.09))
 
     # Avslutning: maling i kamera, tørkes av
@@ -1469,17 +1697,26 @@ def build_acting(boy, girl, coll):
             cam=[(662, 672), (778, 850), (892, 904), (950, 990), (PARTY + 2, DANCE + 134),
                  (DANCE + 150, FRAME_END)]),
     }
+    lead = 3                                           # øynene flytter seg før hodet snur
     for ob in (boy, girl):
         g = bpy.data.objects[f"Blikk_{ob.name}"]
-        windows_influence(copy_loc(g, head[ob.name]), plan[ob.name]["other"])
-        windows_influence(copy_loc(g, look_cam), plan[ob.name]["cam"])
+        for kind in ("other", "cam"):
+            target = head[ob.name] if kind == "other" else look_cam
+            windows_influence(copy_loc(g, target), [(a - lead, b - lead) for a, b in plan[ob.name][kind]])
     rnd = random.Random(11)
     for ob, offset in ((boy, 0), (girl, 37)):
         frames, f = [], 30 + offset
         while f < FRAME_END - 6:
             frames.append(f)
             f += rnd.randint(55, 95)
-        blink(ob.name, frames)
+        # blunk i blikkskiftene, som når man snur hodet
+        turns = [a - lead for kind in ("other", "cam") for a, _ in plan[ob.name][kind]]
+        frames = sorted(set(frames + turns))
+        kept = []
+        for f in frames:
+            if not kept or f - kept[-1] > 12:
+                kept.append(f)
+        blink(ob.name, kept)
 
 
 # --------------------------------------------------------------------------
@@ -1700,6 +1937,76 @@ def build_ending(boy, girl, coll_char, coll_light, cam):
                                       rnd.uniform(-amp, amp)))
         cam.keyframe_insert("location", frame=f)
     cam.location = home
+
+
+def anticipation_and_settle(ob):
+    """Forventning før hvert hopp (sammenkrøket, lener seg tilbake) og settle etter
+    landing (squash, liten overshoot, ro). Legges bare inn der det er plass."""
+    log = sorted(POSE_LOG.get(ob.name, []), key=lambda k: k[0])
+    frames = [k[0] for k in log]
+    free = lambda a, b: not any(a <= f <= b for f in frames)
+    for k0, k1 in zip(log, log[1:]):
+        f0, x0, y0, z0, rx0, ry0, rz0, sq0, raw0 = k0
+        f1, z1, raw1 = k1[0], k1[3], k1[8]
+        if raw0 or raw1:
+            continue
+        if z0 < 0.05 and z1 >= 0.3 and f1 - f0 <= 8 and free(f0 - 5, f0 - 1):   # sats
+            xy = 1 / math.sqrt(0.8)
+            key(ob, f0 - 3, loc=(x0, y0, 0.0), rot=(rx0 - 6, ry0, rz0), scale=(xy, xy, 0.8))
+        if z0 >= 0.3 and z1 < 0.05 and f1 - f0 <= 10 and free(f1 + 1, f1 + 8):   # landing
+            for df, sq in ((2, 0.86), (5, 1.06), (8, 1.0)):
+                xy = 1 / math.sqrt(sq)
+                key(ob, f1 + df, scale=(xy, xy, sq))
+
+
+def break_twinning(ob, windows, delay=3):
+    """Unngå at de gjør akkurat det samme samtidig: hennes bevegelser i disse vinduene
+    kommer litt etter hans."""
+    objs = [ob] + list(ARMS[ob.name].values()) + list(BOOTS[ob.name].values())
+    for o in objs:
+        for fc in fcurves_of(o):
+            for kp in sorted(fc.keyframe_points, key=lambda k: -k.co.x):
+                if any(a < kp.co.x < b - delay - 1 for a, b in windows):
+                    kp.co.x += delay
+                    kp.handle_left.x += delay
+                    kp.handle_right.x += delay
+            fc.update()
+
+
+def hair_follow_through(ob, stiffness=0.25, damping=0.72, gain=120.0):
+    """Etterslep i hår, musefletter og sløyfe: en fjær som reagerer på kroppens
+    akselerasjon (overlapping action). Simuleres bilde for bilde."""
+    curves = {(fc.data_path, fc.array_index): fc for fc in fcurves_of(ob)}
+
+    def world(f):
+        loc = Vector([curves[("location", i)].evaluate(f) if ("location", i) in curves else 0 for i in range(3)])
+        rot = [curves[("rotation_euler", i)].evaluate(f) if ("rotation_euler", i) in curves else 0
+               for i in range(3)]
+        return loc, Euler(rot).to_matrix()
+
+    for pv in HAIR.get(ob.name, []):
+        off = Vector(pv.location)
+        pts, mats = [], []
+        for f in range(FRAME_START - 1, FRAME_END + 2):
+            loc, m = world(f)
+            pts.append(loc + m @ off)
+            mats.append(m)
+        ang = Vector((0.0, 0.0))
+        vel = Vector((0.0, 0.0))
+        keys = []
+        for i in range(1, len(pts) - 1):
+            acc = mats[i].transposed() @ (pts[i + 1] - 2 * pts[i] + pts[i - 1])   # i figurens rom
+            target = Vector((acc.y * gain, -acc.x * gain))                       # lener seg bakover
+            vel = vel * damping + (target - ang) * stiffness
+            ang += vel
+            ang.x = max(-35.0, min(35.0, ang.x))
+            ang.y = max(-35.0, min(35.0, ang.y))
+            keys.append((FRAME_START - 1 + i, ang.x, ang.y))
+        base = Euler(pv.rotation_euler)
+        for f, ax, ay in keys[::2]:
+            pv.rotation_euler = (base.x + math.radians(ax), base.y + math.radians(ay), base.z)
+            pv.keyframe_insert("rotation_euler", frame=f)
+        pv.rotation_euler = base
 
 
 def wing_drag(*chars, lag=2):
@@ -2706,8 +3013,9 @@ def main():
     tub = build_bucket("Balje", c_props, list(pm.values()), metal, r1=0.4, r2=0.47, depth=0.6)
     bucket_b = build_bucket("Spann_Gutt", c_props, pm["Gul"], metal)
     bucket_g = build_bucket("Spann_Jente", c_props, pm["Rosa"], metal)
-    build_smile(girl, c_char, 810, "Jente")
-    build_smile(boy, c_char, 892, "Gutt")
+    for ob in (boy, girl):
+        build_face_rig(ob, c_char)
+        animate_expressions(ob.name, EXPR_TIMELINE[ob.name])
     for ob in (boy, girl):                             # blikkmål rett frem, styres i build_acting()
         build_face(ob, c_char, empty(f"Blikk_{ob.name}", c_char, (0, -4.0, EYE_Z), ob))
     ARMS.clear()
@@ -2727,7 +3035,13 @@ def main():
     build_knockables(c_props, c_fx, pm, metal)
     build_paint_marks(c_fx, pm)
     build_ending(boy, girl, c_char, c_light, cams["dance"])
+    for ob in (boy, girl):
+        anticipation_and_settle(ob)
+    break_twinning(girl, [(586, 620), (636, 660), (904, 946), (DANCE + 120, DANCE + 136),
+                          (DANCE + 150, FRAME_END)])
     wing_drag(boy, girl)
+    for ob in (boy, girl):
+        hair_follow_through(ob)
     color_script(c_light)
     build_set_dressing(c_set, pm, metal)
     build_furniture(c_set)
