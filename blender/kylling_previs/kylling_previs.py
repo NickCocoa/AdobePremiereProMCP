@@ -838,6 +838,52 @@ EXPR_TIMELINE = {
 
 
 EYES = {}  # figurnavn -> liste med øyeobjekter (hvite og pupiller) til blunking
+EYE_SHINE = {}  # figurnavn -> [(pupill, lysrefleks)] til skinnende øyne
+
+
+def eyes_shine(ob, coll, f0, f1, colors):
+    """Øynene skinner: pupillene utvider seg, lysrefleksene vokser og gløder, regnbuen
+    speiles i pupillene og små stjerner glitrer rundt øynene."""
+    for pupil, glint in EYE_SHINE[ob.name]:
+        for obj, k in ((pupil, 1.3), (glint, 1.9)):
+            base = tuple(obj.scale)
+            for f, m in ((f0 - 3, 1.0), (f0 + 2, k * 1.08), (f0 + 5, k), (f1 - 3, k), (f1 + 3, 1.0)):
+                obj.scale = tuple(v * m for v in base)
+                obj.keyframe_insert("scale", frame=f)
+            obj.scale = base
+        for i, col in enumerate(colors):               # regnbuemalingen speiles i pupillen
+            a = math.radians(200 + i * 28)
+            dot = blob_mesh(f"{pupil.name}_Speiling_{i}", coll, col)
+            dot.parent = pupil
+            dot.location = (0.55 * math.cos(a), -0.85, 0.55 * math.sin(a))
+            pop(dot, f0, full=(0.14, 0.12, 0.14), f_off=f1 + 2, overshoot=1.3)
+
+
+def sparkle_stars(ob, coll, f0, f1):
+    """Små stjerner som glitrer rundt øynene. Keyes i ferdige frames (etter HOLDS),
+    så de fortsetter å blinke også mens bildet holdes."""
+    shine = bpy.data.materials["M_Glans"]
+    rnd = random.Random(4)
+    for i, (side, dz) in enumerate(((-1, 0.14), (1, 0.18), (1, -0.02), (-1, 0.02))):
+        p, n = surface_point(34 * side, EYE_Z + dz, grow=0.05)
+        star = bpy.data.objects.new(f"{ob.name}_Glitter_{i}", None)
+        coll.objects.link(star)
+        star.parent, star.location = ob, p
+        star.rotation_euler = n.to_track_quat("-Y", "Z").to_euler()
+        for k, rot in enumerate((0, 90)):              # firtakket stjerne
+            arm = blob_mesh(f"{star.name}_{k}", coll, shine)
+            arm.parent, arm.scale = star, (0.008, 0.004, 0.05)
+            arm.rotation_euler = (0, math.radians(rot), 0)
+        t0 = f0 + 2 + i * 2
+        star.scale = (0, 0, 0)
+        star.keyframe_insert("scale", frame=FRAME_START)
+        star.keyframe_insert("scale", frame=t0 - 1)
+        for f in range(t0, f1, 4):                     # blinker av og på
+            s_ = rnd.uniform(0.9, 1.4) if (f - t0) % 8 == 0 else 0.35
+            star.scale = (s_,) * 3
+            star.keyframe_insert("scale", frame=f)
+        star.scale = (0, 0, 0)
+        star.keyframe_insert("scale", frame=f1 + 2)
 
 
 def build_face(target, coll, gaze):
@@ -863,10 +909,12 @@ def build_face(target, coll, gaze):
         pupil.parent = pivot
         pupil.location = (0, -0.07, 0)
         pupil.scale = (0.052, 0.03, 0.062)
-        glint = blob_mesh(f"{target.name}_Glans_{tag}", coll, white)  # lysrefleks gir liv
+        shine = bpy.data.materials.get("M_Glans") or material("M_Glans", (1, 1, 1), rough=0.1, emission=2.0)
+        glint = blob_mesh(f"{target.name}_Glans_{tag}", coll, shine)  # lysrefleks gir liv
         glint.parent = pupil
         glint.location = (0.35, -0.9, 0.4)
         glint.scale = (0.3, 0.3, 0.3)
+        EYE_SHINE.setdefault(target.name, []).append((pupil, glint))
         parts += [eye, pupil]
     EYES[target.name] = parts
 
@@ -1636,7 +1684,8 @@ def build_cinematic(cams, boy, girl, coll):
         ("cu_oops", head_b, [(752, 766, 0.2)]),
         ("cu_jump", mid, [(PLAY - 2, PLAY + 58, 0.3)]),
         ("dance", mid, [(DANCE, DANCE + 100, 0.3)]),
-        ("cu_ots_tub", empty("Fokus_Balje", coll, (0.0, 0.4, 0.5)), [(86, 100, 0.15)]),
+        ("cu_ots_tub", empty("Fokus_Balje", coll, (0.0, 0.4, 0.5)), [(80, 86, 0.1)]),
+        ("cu_eyes", head_b, [(86, 92, 0.05)]),
         ("fall", mid, [(PLAY + 58, PLAY + 80, 0.3)]),
         ("cu_floor", head_g, [(PLAY + 80, PARTY, 0.15)]),
         ("party", mid, [(PARTY, PARTY + 18, 0.3), (PARTY + 36, DANCE + 12, 0.4)]),
@@ -1698,6 +1747,8 @@ def build_acting(boy, girl, coll):
                  (DANCE + 150, FRAME_END)]),
     }
     lead = 3                                           # øynene flytter seg før hodet snur
+    tub_look = copy_loc(bpy.data.objects["Blikk_Gutt"], bpy.data.objects["Fokus_Balje"])
+    windows_influence(tub_look, [(76 - lead, 100 - lead)])            # han stirrer ned i malingen
     for ob in (boy, girl):
         g = bpy.data.objects[f"Blikk_{ob.name}"]
         for kind in ("other", "cam"):
@@ -2566,6 +2617,8 @@ def build_cameras(coll):
         "cu_jump": cam("CAM_CU_14_Hoppeklem", (0.3, -7.9, 1.5), (0.3, -5.0, 1.4), 28),
         "dance": cam("CAM_15_Dans", (0.05, -10.1, 1.4), (0.05, -6.0, 1.3), 28),
         "cu_ots_tub": cam("CAM_CU_15_Ned_I_Balja_OTS", (-1.45, -0.95, 2.35), (0.0, 0.4, 0.5), 30),
+        # Ekstremt nærbilde av øynene hans sett fra malingen i balja
+        "cu_eyes": cam("CAM_CU_16_Oyne_Skinner", (0.62, 0.3, 0.95), (-0.4, 0.4, 1.15), 55),
         "fall": cam("CAM_18_Pladask", (2.6, -7.6, 1.1), (-0.6, -5.2, 0.8), 28),
         "cu_floor": cam("CAM_CU_19_Fra_Gulvet", (-0.2, -5.35, 0.35), (-1.3, -5.9, 1.45), 24),
         "party": cam("CAM_20_Fest", (0.6, -9.2, 0.7), (-0.8, -5.5, 0.9), 24),
@@ -2577,8 +2630,9 @@ def build_cameras(coll):
     scene = bpy.context.scene
     shots = [
         (1, "track", "SH010 Følger gutten bakfra til balja"),
-        (86, "cu_ots_tub", "SH011b Over skulderen hans, ned i regnbuemalingen"),
-        (100, "wide", "SH012 Kaster maling rundt seg"),
+        (80, "cu_ots_tub", "SH011b Over skulderen hans, ned i regnbuemalingen"),
+        (86, "cu_eyes", "SH011c ECU Øynene skinner når han ser regnbuemalingen"),
+        (92, "wide", "SH012 Kaster maling rundt seg"),
         (156, "cu_prints", "SH013 Innklipp: håndavtrykk på gulvet"),
         (190, "wide", "SH014 Beundrer verket sitt"),
         (222, "cu_boy_ots", "SH021 CU Gutten ser henne (OTS)"),
@@ -2728,7 +2782,8 @@ def apply_cuts():
 # Pusterom: (frame etter CUTS, antall frames). Alt fryses og holdes ved frame,
 # og figurene puster litt mens de står. Alt etterpå skyves bakover.
 HOLDS = [
-    (90, 24),     # han ser ned i regnbuemalingen og jubler
+    (84, 16),     # over skulderen: han ser regnbuemalingen
+    (90, 24),     # øynene skinner, så jubler han
     (160, 24),    # står og beundrer verket sitt før søster kommer
     (180, 16),    # han ser søster komme (over skulderen hennes)
     (214, 18),    # søster ler av ham, han sitter fast i balja
@@ -3035,6 +3090,7 @@ def main():
     build_knockables(c_props, c_fx, pm, metal)
     build_paint_marks(c_fx, pm)
     build_ending(boy, girl, c_char, c_light, cams["dance"])
+    eyes_shine(boy, c_char, 86, 92, [pm[c] for c in ("Rosa", "Gul", "Turkis", "Lilla")])
     for ob in (boy, girl):
         anticipation_and_settle(ob)
     break_twinning(girl, [(586, 620), (636, 660), (904, 946), (DANCE + 120, DANCE + 136),
@@ -3048,6 +3104,7 @@ def main():
     setup_render()
     apply_cuts()
     apply_holds()
+    sparkle_stars(boy, c_char, final_frame(86), final_frame(92))
 
     args = parse_args()
     out_dir = os.path.dirname(os.path.abspath(bpy.path.abspath(args["save"]))) if "save" in args \

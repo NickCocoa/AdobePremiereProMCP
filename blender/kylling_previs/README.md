@@ -95,41 +95,42 @@ Tre-punkts område-lys (varm key, kjølig fill og kraftig rimlys bakfra som skil
 | Festen | dempet lilla, strobelys i fire farger og dis (`Fest_Dis`) som gir synlige lysstråler |
 | Slutten | lyst og varmt når de griper kameraet |
 
-## Handling (24 fps, 1600 frames ≈ 67 sek)
+## Handling (24 fps, 1616 frames ≈ 67 sek)
 
 | Frames | Del | Hva skjer |
 |--------|-----|-----------|
-| 1–215 | Åpning | Et følgeskudd bakfra følger gutten (svart) mens han løper inn og titter ned i balja. Over skulderen hans ser vi ned i regnbuemalingen. Han kaster maling rundt seg (total), et innklipp viser håndavtrykkene, og han står og beundrer verket sitt. |
-| 216–369 | Søster kommer | Han ser søster komme. Hun sparker ham, og han havner med hodet først i balja. Hun ler godt av ham, og han spretter opp full av maling, rister seg og blir stående og stirre på henne. |
-| 370–595 | Malingskamp | Han kaster på henne. Hun får sjokk og blir sint, ser spannet («aha!»), kaster og bommer. Han fryser («uh-oh»), og hun jager ham. Begge løper helt ut av bildet, kameraet panorerer raskt til høyre, og de kommer inn igjen. |
-| 596–821 | Jakten dypt i rommet | De løper dypt inn i rommet. Hun river ned tårnet. Begge sklir i den gule dammen og ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
-| 822–1177 | Linsa og klemmen | Hun løper mot kamera og dukker, og malingen hans treffer linsa. Gutten sier «oi!» og fniser. Hun tørker linsa, puster lettet ut og smiler. Han løper inn i bildet fra høyre og klemmer henne, de fniser sammen og gir et varmt smil i kamera. |
-| 1178–1313 | Leken | Hun får en idé og hopper opp på broren (f1186). Han rister henne av seg, og hun flyr av og ler. Han lader opp og hopper på henne (f1258), men hun dukker unna, og han går pladask med nesa i gulvet (f1266). Hun ler så hun rister (sett fra gulvet). |
-| 1314–1397 | Fest | Hun begynner å danse. Lyset i rommet dempes, og strobelys i fire farger starter. Han ruller over på ryggen og ligger og nikker i takt, med ansiktet mot oss (nærbilde), og så slenger han seg opp og danser også (f1374). |
-| 1398–1600 | Slutten | Én og én danser de mot kamera med hvert sitt lave nærbilde: først gutten med robotdans, så søster som snurrer. Til slutt kommer begge helt frem og griper kameraet sammen (f1506). Strobelysene slukker, rommet blir lyst og varmt igjen, og de smiler rett inn i linsa. **Knappen:** han slipper kameraet og etterlater et turkis fjæravtrykk på linsa (f1522). De ser det, ser på hverandre og bryter ut i latter. Slutt. |
+| 1–231 | Åpning | Et følgeskudd bakfra følger gutten (svart) mens han løper inn og titter ned i balja. Over skulderen hans ser vi ned i regnbuemalingen, og i et ekstremt nærbilde skinner øynene hans: pupillene utvider seg, regnbuen speiles i dem og små stjerner glitrer. Han kaster maling rundt seg (total), et innklipp viser håndavtrykkene, og han står og beundrer verket sitt. |
+| 232–385 | Søster kommer | Han ser søster komme. Hun sparker ham, og han havner med hodet først i balja. Hun ler godt av ham, og han spretter opp full av maling, rister seg og blir stående og stirre på henne. |
+| 386–611 | Malingskamp | Han kaster på henne. Hun får sjokk og blir sint, ser spannet («aha!»), kaster og bommer. Han fryser («uh-oh»), og hun jager ham. Begge løper helt ut av bildet, kameraet panorerer raskt til høyre, og de kommer inn igjen. |
+| 612–837 | Jakten dypt i rommet | De løper dypt inn i rommet. Hun river ned tårnet. Begge sklir i den gule dammen og ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
+| 838–1193 | Linsa og klemmen | Hun løper mot kamera og dukker, og malingen hans treffer linsa. Gutten sier «oi!» og fniser. Hun tørker linsa, puster lettet ut og smiler. Han løper inn i bildet fra høyre og klemmer henne, de fniser sammen og gir et varmt smil i kamera. |
+| 1194–1329 | Leken | Hun får en idé og hopper opp på broren (f1202). Han rister henne av seg, og hun flyr av og ler. Han lader opp og hopper på henne (f1274), men hun dukker unna, og han går pladask med nesa i gulvet (f1282). Hun ler så hun rister (sett fra gulvet). |
+| 1330–1413 | Fest | Hun begynner å danse. Lyset i rommet dempes, og strobelys i fire farger starter. Han ruller over på ryggen og ligger og nikker i takt, med ansiktet mot oss (nærbilde), og så slenger han seg opp og danser også (f1390). |
+| 1414–1616 | Slutten | Én og én danser de mot kamera med hvert sitt lave nærbilde: først gutten med robotdans, så søster som snurrer. Til slutt kommer begge helt frem og griper kameraet sammen (f1522). Strobelysene slukker, rommet blir lyst og varmt igjen, og de smiler rett inn i linsa. **Knappen:** han slipper kameraet og etterlater et turkis fjæravtrykk på linsa (f1538). De ser det, ser på hverandre og bryter ut i latter. Slutt. |
 
 **Plant og payoff.** Kameraet etableres tidlig, så malingen på linsa og fjæravtrykket på slutten føles fortjent:
-- Gutten kikker kort inn i kamera mens han beundrer verket sitt (f≈218).
+- Gutten kikker kort inn i kamera mens han beundrer verket sitt (f≈234).
 - Søster erter mot kamera før hun dukker.
 - Malingen på linsa midtveis kommer tilbake som fjæravtrykket i siste bilde.
 
-**Pusterom og reaksjoner.** 16 pauser på 0,4–1,1 sekunder gir tid til reaksjonene og relasjonen mellom dem. Figurene puster mens de står:
-1. Han ser ned i regnbuemalingen.
-2. Han beundrer verket sitt.
-3. Han ser søster komme.
-4. Hun ler av ham i balja.
-5. Han står dryppende og stirrer på henne.
-6. Hun får sjokk når hun blir truffet.
-7. Hun får øye på spannet.
-8. «Uh-oh», han fryser.
-9. De ligger og puster ut etter latteren.
-10. Hun erter ham.
-11. Han sier «oi!» og fniser.
-12. Hun puster lettet ut etter linsa.
-13. De fniser i klemmen.
-14. Hun henger på ham, og han ser lurt opp.
-15. Pladask: stille et øyeblikk.
-16. Han ligger og får en idé før han slenger seg opp.
+**Pusterom og reaksjoner.** 17 pauser på 0,4–1,1 sekunder gir tid til reaksjonene og relasjonen mellom dem. Figurene puster mens de står:
+1. Han ser regnbuemalingen (over skulderen).
+2. Øynene hans skinner før han jubler.
+3. Han beundrer verket sitt.
+4. Han ser søster komme.
+5. Hun ler av ham i balja.
+6. Han står dryppende og stirrer på henne.
+7. Hun får sjokk når hun blir truffet.
+8. Hun får øye på spannet.
+9. «Uh-oh», han fryser.
+10. De ligger og puster ut etter latteren.
+11. Hun erter ham.
+12. Han sier «oi!» og fniser.
+13. Hun puster lettet ut etter linsa.
+14. De fniser i klemmen.
+15. Hun henger på ham, og han ser lurt opp.
+16. Pladask: stille et øyeblikk.
+17. Han ligger og får en idé før han slenger seg opp.
 
 ### Ting som veltes
 
@@ -154,42 +155,43 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 | Frame | Kamera | Shot |
 |-------|--------|------|
 | 1 | `CAM_00_Tracking` | SH010 Følger gutten bakfra til balja |
-| 86 | `CAM_CU_15_Ned_I_Balja_OTS` | SH011b Over skulderen hans, ned i regnbuemalingen |
-| 124 | `CAM_01_Wide` | SH012 Kaster maling rundt seg |
-| 166 | `CAM_CU_10_Handavtrykk` | SH013 Innklipp: håndavtrykk på gulvet |
-| 182 | `CAM_01_Wide` | SH014 Beundrer verket sitt |
-| 226 | `CAM_CU_01_Gutt_OTS` | SH021 CU Gutten ser henne (OTS) |
-| 248 | `CAM_02_Medium` | SH022 Spark, hodet ned i balja |
-| 258 | `CAM_CU_11_Plask` | SH0225 CU Plask, hodet først i balja |
-| 272 | `CAM_CU_02_Jente_Ler` | SH023 CU Søster ler av ham |
-| 310 | `CAM_02_Medium` | SH024 Han spretter opp |
-| 326 | `CAM_CU_03_Gutt` | SH025 CU Gutten full av maling |
-| 370 | `CAM_01_Wide` | SH030 Han kaster tilbake |
-| 387 | `CAM_CU_04_Jente_Treff` | SH031 CU Søster blir truffet, sint |
-| 432 | `CAM_CU_12_Aha` | SH0315 CU Søster ser spannet: aha! |
-| 460 | `CAM_01_Wide` | SH032 Hun henter spann |
-| 474 | `CAM_CU_03_Gutt` | SH033 CU Gutten: uh-oh |
-| 502 | `CAM_01_Wide` | SH034 Jakt ut av bildet |
-| 596 | `CAM_03_Dyp` | SH040 Jakt dypt i rommet |
-| 612 | `CAM_CU_08_Loep` | SH040b CU Søster raser forbi og river ned tårnet, han etter |
-| 634 | `CAM_03_Dyp` | SH040c Jakt frem, de sklir |
-| 706 | `CAM_CU_05_Liggende` | SH041 CU Ligger og ler sammen |
-| 752 | `CAM_03_Dyp` | SH042 Piruett og dunk |
-| 794 | `CAM_CU_06_Erting_OTS` | SH043 CU Søster erter ham (OTS) |
-| 822 | `CAM_04_Ende` | SH060 Jakt mot kamera, maling på linsa |
-| 902 | `CAM_CU_13_Oi` | SH0605 CU Gutten: oi! fniser |
-| 932 | `CAM_04_Ende` | SH0607 Søster tørker linsa og smiler |
-| 1072 | `CAM_CU_07_Klem` | SH061 CU Klem, fniser til hverandre |
-| 1134 | `CAM_04_Ende` | SH062 Varmt smil i kamera |
-| 1176 | `CAM_CU_14_Hoppeklem` | SH063 CU Hoppeklem, han rister henne av seg |
-| 1248 | `CAM_18_Pladask` | SH064 Han hopper på henne, hun dukker, pladask |
-| 1284 | `CAM_CU_19_Fra_Gulvet` | SH065 Hun ler av ham (fra gulvet ved hodet hans) |
-| 1314 | `CAM_20_Fest` | SH066 Hun begynner å danse, lyset dempes, strobelys |
-| 1332 | `CAM_CU_21_Nikker` | SH067 CU Han ligger på ryggen og nikker i takt |
-| 1362 | `CAM_20_Fest` | SH068 Han slenger seg opp og danser |
-| 1398 | `CAM_16_Dans_Gutt` | SH070 Guttens robotdans mot kamera (lav vinkel) |
-| 1446 | `CAM_17_Dans_Jente` | SH071 Søster snurrer frem mot kamera (lav vinkel) |
-| 1494 | `CAM_15_Dans` | SH072 De kommer helt frem og griper kameraet, rommet blir lyst |
+| 80 | `CAM_CU_15_Ned_I_Balja_OTS` | SH011b Over skulderen hans, ned i regnbuemalingen |
+| 102 | `CAM_CU_16_Oyne_Skinner` | SH011c ECU Øynene skinner når han ser regnbuemalingen |
+| 132 | `CAM_01_Wide` | SH012 Kaster maling rundt seg |
+| 182 | `CAM_CU_10_Handavtrykk` | SH013 Innklipp: håndavtrykk på gulvet |
+| 198 | `CAM_01_Wide` | SH014 Beundrer verket sitt |
+| 242 | `CAM_CU_01_Gutt_OTS` | SH021 CU Gutten ser henne (OTS) |
+| 264 | `CAM_02_Medium` | SH022 Spark, hodet ned i balja |
+| 274 | `CAM_CU_11_Plask` | SH0225 CU Plask, hodet først i balja |
+| 288 | `CAM_CU_02_Jente_Ler` | SH023 CU Søster ler av ham |
+| 326 | `CAM_02_Medium` | SH024 Han spretter opp |
+| 342 | `CAM_CU_03_Gutt` | SH025 CU Gutten full av maling |
+| 386 | `CAM_01_Wide` | SH030 Han kaster tilbake |
+| 403 | `CAM_CU_04_Jente_Treff` | SH031 CU Søster blir truffet, sint |
+| 448 | `CAM_CU_12_Aha` | SH0315 CU Søster ser spannet: aha! |
+| 476 | `CAM_01_Wide` | SH032 Hun henter spann |
+| 490 | `CAM_CU_03_Gutt` | SH033 CU Gutten: uh-oh |
+| 518 | `CAM_01_Wide` | SH034 Jakt ut av bildet |
+| 612 | `CAM_03_Dyp` | SH040 Jakt dypt i rommet |
+| 628 | `CAM_CU_08_Loep` | SH040b CU Søster raser forbi og river ned tårnet, han etter |
+| 650 | `CAM_03_Dyp` | SH040c Jakt frem, de sklir |
+| 722 | `CAM_CU_05_Liggende` | SH041 CU Ligger og ler sammen |
+| 768 | `CAM_03_Dyp` | SH042 Piruett og dunk |
+| 810 | `CAM_CU_06_Erting_OTS` | SH043 CU Søster erter ham (OTS) |
+| 838 | `CAM_04_Ende` | SH060 Jakt mot kamera, maling på linsa |
+| 918 | `CAM_CU_13_Oi` | SH0605 CU Gutten: oi! fniser |
+| 948 | `CAM_04_Ende` | SH0607 Søster tørker linsa og smiler |
+| 1088 | `CAM_CU_07_Klem` | SH061 CU Klem, fniser til hverandre |
+| 1150 | `CAM_04_Ende` | SH062 Varmt smil i kamera |
+| 1192 | `CAM_CU_14_Hoppeklem` | SH063 CU Hoppeklem, han rister henne av seg |
+| 1264 | `CAM_18_Pladask` | SH064 Han hopper på henne, hun dukker, pladask |
+| 1316 | `CAM_CU_19_Fra_Gulvet` | SH065 Hun ler av ham (fra gulvet ved hodet hans) |
+| 1330 | `CAM_20_Fest` | SH066 Hun begynner å danse, lyset dempes, strobelys |
+| 1348 | `CAM_CU_21_Nikker` | SH067 CU Han ligger på ryggen og nikker i takt |
+| 1378 | `CAM_20_Fest` | SH068 Han slenger seg opp og danser |
+| 1414 | `CAM_16_Dans_Gutt` | SH070 Guttens robotdans mot kamera (lav vinkel) |
+| 1462 | `CAM_17_Dans_Jente` | SH071 Søster snurrer frem mot kamera (lav vinkel) |
+| 1510 | `CAM_15_Dans` | SH072 De kommer helt frem og griper kameraet, rommet blir lyst |
 
 Ingen skudd er lenger enn ca. 6 sekunder, bortsett fra det siste der de holder kameraet.
 
@@ -219,9 +221,9 @@ I tillegg ligger det markører som heter `Uttrykk …` (uten kamera). De angir h
 
 Skriptet lager et syntetisk temp-spor, `temp_musikk.wav` (120 BPM), og legger det i Video Sequencer på kanal 1. Det er bare en plassholder for rytmen og skal byttes ut med ekte musikk.
 - **Gjennom historien:** lette plukk på hvert slag, og korte lydstikk på treffene: sparket, plask, treff, tårnet, skliing, linsa, klemmen, hoppet, pladask og knappen.
-- **I festen:** fullt beat med kick, skarptromme, hihat og bass. Strobelysene blinker i sekstendedeler. Festen starter på et slag (f1314), og hvert danseskudd og grepet om kameraet ligger på hele slag (12 bilder per slag).
+- **I festen:** fullt beat med kick, skarptromme, hihat og bass. Strobelysene blinker i sekstendedeler. Festen starter på et slag (f1330), og hvert danseskudd og grepet om kameraet ligger på hele slag (12 bilder per slag).
 - **Når de griper kameraet:** et stort, varmt akkordløft, og en liten latterfrase på knappen.
-- **Bytte musikk:** legg ekte musikk i 120 BPM med første slag i festen på f1314, så treffer klipp og lys fortsatt. `BEAT` og `make_temp_music()` styrer dette.
+- **Bytte musikk:** legg ekte musikk i 120 BPM med første slag i festen på f1330, så treffer klipp og lys fortsatt. `BEAT` og `make_temp_music()` styrer dette.
 
 ## Justere
 
