@@ -26,7 +26,7 @@ from contextlib import contextmanager
 
 import bmesh
 import bpy
-from mathutils import Quaternion, Vector
+from mathutils import Matrix, Quaternion, Vector
 
 FPS = 24
 FRAME_START = 1
@@ -35,12 +35,17 @@ PARTY = 1100      # hun begynner å danse: lyset dempes, strobelys
 DANCE = 1162      # én og én danser de mot kamera
 FRAME_END = 1332  # før klipp (CUTS) og pauser (HOLDS)
 
-# Karakter-proporsjoner (meter): høy blokk som leses som en person
-CHAR_W = 0.7   # bredde (skulder til skulder)
-CHAR_D = 0.5   # dybde (forside til bakside)
+# Karakter-proporsjoner (meter): kyllingform med barnslige proporsjoner,
+# eggformet kropp og stort hode. Total høyde CHAR_H, origo nederst.
+CHAR_W = 0.7   # bredde (kropp)
+CHAR_D = 0.5   # dybde, brukes til å ligge på gulvet
 CHAR_H = 1.7   # høyde
-FRONT = CHAR_D / 2  # avstand fra senter til den røde forsiden
-LEAN = 0.7     # demper lening, høye blokker vipper mye i toppen
+FRONT = CHAR_D / 2  # omtrentlig avstand fra senter til forsiden
+LEAN = 0.7     # demper lening, høye figurer vipper mye i toppen
+# Ellipsoider (senter-z, radius x, radius y, radius z)
+BODY = (0.55, 0.36, 0.30, 0.55)
+HEAD = (1.30, 0.40, 0.32, 0.40)
+EYE_Z = 1.40   # øyehøyde, kameraer og fokus sikter hit
 
 # Farger (lineære RGB)
 RED = (0.80, 0.03, 0.03)
@@ -101,6 +106,28 @@ def material(name, color, rough=0.5, metallic=0.0, emission=0.0):
         if emission:
             bsdf.inputs["Emission Color"].default_value = (*color, 1.0)
             bsdf.inputs["Emission Strength"].default_value = emission
+    return m
+
+
+def front_mask_material(name, body_color, rough=0.45):
+    """Kroppsfarge med rødt ansikt og mage der flaten peker fremover (lokal -Y).
+    Myk overgang styrt av objektets normal, uavhengig av hvor tett meshen er."""
+    m = material(name, body_color, rough)
+    nt = m.node_tree
+    bsdf = nt.nodes.get("Principled BSDF")
+    tex = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    rng = nt.nodes.new("ShaderNodeMapRange")
+    rng.inputs["From Min"].default_value, rng.inputs["From Max"].default_value = -0.77, -0.73
+    rng.inputs["To Min"].default_value, rng.inputs["To Max"].default_value = 1.0, 0.0
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    mix.inputs["A"].default_value = (*body_color, 1.0)
+    mix.inputs["B"].default_value = (*RED, 1.0)
+    nt.links.new(tex.outputs["Normal"], sep.inputs[0])
+    nt.links.new(sep.outputs["Y"], rng.inputs["Value"])
+    nt.links.new(rng.outputs["Result"], mix.inputs["Factor"])
+    nt.links.new(mix.outputs["Result"], bsdf.inputs["Base Color"])
     return m
 
 
@@ -241,7 +268,7 @@ def build_lights(coll):
 
     area("Lys_Key", (-4.5, -5.0, 6.0), (0, 0, 0.6), 750, 5.0, (1.0, 0.88, 0.74))
     area("Lys_Fill", (5.5, -4.5, 3.0), (0, 0, 0.6), 200, 6.0, (0.80, 0.88, 1.0))
-    area("Lys_Rim", (2.0, 5.0, 5.0), (0, 0, 0.8), 800, 3.0, (1.0, 0.92, 0.80))
+    area("Lys_Rim", (2.0, 5.0, 5.0), (0, 0, 0.8), 1100, 3.0, (1.0, 0.92, 0.80))
 
     world = bpy.data.worlds.new("Studio_World")
     bpy.context.scene.world = world
@@ -260,23 +287,86 @@ def build_lights(coll):
 # Karakterer og rekvisitter
 # --------------------------------------------------------------------------
 
+def ellipsoid_bm(bm, ell, grow=0.0, segs=(48, 28)):
+    """Legg til en ellipsoide (senter-z, rx, ry, rz) i bm."""
+    zc, rx, ry, rz = ell
+    geom = bmesh.ops.create_uvsphere(bm, u_segments=segs[0], v_segments=segs[1], radius=1.0)
+    verts = geom["verts"]
+    bmesh.ops.scale(bm, vec=(rx + grow, ry + grow, rz + grow), verts=verts)
+    bmesh.ops.translate(bm, vec=(0, 0, zc), verts=verts)
+    return verts
+
+
+def surface_point(phi, z, grow=0.0):
+    """Punkt og normal på kyllingens overflate i høyde z, vinkel phi rundt Z
+    (0 = forsiden (-Y), 90 = høyre side (+X), 180 = ryggen). Lokale koordinater."""
+    best = None
+    for zc, rx, ry, rz in (BODY, HEAD):
+        t = 1.0 - ((z - zc) / rz) ** 2
+        if t <= 0.0:
+            continue
+        a, b = rx * math.sqrt(t), ry * math.sqrt(t)
+        p = Vector((a * math.sin(math.radians(phi)), -b * math.cos(math.radians(phi)), z))
+        if best is None or p.xy.length > best[0].xy.length:
+            n = Vector((p.x / rx ** 2, p.y / ry ** 2, (z - zc) / rz ** 2)).normalized()
+            best = (p, n)
+    p, n = best
+    return p + n * grow, n
+
+
 def build_character(name, label, body_color, coll, label_coll):
-    """Blokk CHAR_W x CHAR_D x CHAR_H med origo nederst.
-    Alle sider i kroppsfarge, forsiden (-Y) rød."""
+    """Kylling med origo nederst: eggformet kropp og stort hode i kroppsfarge,
+    rød forside (ansikt og mage) som viser hvilken vei den ser."""
     bm = bmesh.new()
-    bmesh.ops.create_cube(bm, size=1.0)
-    bmesh.ops.scale(bm, vec=(CHAR_W, CHAR_D, CHAR_H), verts=bm.verts)
-    bmesh.ops.translate(bm, vec=(0, 0, CHAR_H / 2), verts=bm.verts)
+    ellipsoid_bm(bm, BODY)
+    ellipsoid_bm(bm, HEAD)
     bm.normal_update()
     for f in bm.faces:
-        f.material_index = 1 if f.normal.y < -0.9 else 0
+        f.material_index = 1                           # kropp med rød forside (myk maske)
     ob = mesh_object(name, bm, coll, [
-        material(f"M_{name}_Kropp", body_color, rough=0.45),
-        material(f"M_{name}_Forside", RED, rough=0.4),
+        material(f"M_{name}_Kropp", body_color, rough=0.45),   # vinger, tust
+        front_mask_material(f"M_{name}_Forside", body_color),
     ])
-    bev = ob.modifiers.new("Bevel", "BEVEL")
-    bev.width, bev.segments = 0.04, 3
-    bev.limit_method = "ANGLE"
+    smooth(ob)
+
+    orange = bpy.data.materials.get("M_Nebb") or material("M_Nebb", (1.0, 0.42, 0.02), rough=0.35)
+    # Nebb som peker fremover
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=16, radius1=0.085, radius2=0.0, depth=0.17)
+    bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(math.radians(90), 3, "X"))
+    beak = mesh_object(f"{name}_Nebb", bm, coll, [orange])
+    smooth(beak)
+    beak.parent = ob
+    p, _ = surface_point(0, 1.24)
+    beak.location = (0, p.y - 0.05, 1.24)
+    # Føtter
+    for side in (-1, 1):
+        foot = blob_mesh(f"{name}_Fot_{'V' if side < 0 else 'H'}", coll, orange)
+        foot.parent = ob
+        foot.location = (0.15 * side, -0.14, 0.03)
+        foot.scale = (0.11, 0.17, 0.035)
+
+    if name == "Jente":                                # sløyfe på hodet
+        bow = bpy.data.materials.get("M_Sloyfe") or material("M_Sloyfe", (1.0, 0.25, 0.3), rough=0.4)
+        for side in (-1, 1):
+            b = blob_mesh(f"{name}_Sloyfe_{'V' if side < 0 else 'H'}", coll, bow)
+            b.parent = ob
+            b.location = (0.11 * side, 0.02, HEAD[0] + HEAD[3] - 0.02)
+            b.scale = (0.11, 0.05, 0.075)
+            b.rotation_euler = (0, math.radians(-20 * side), 0)
+        knot = blob_mesh(f"{name}_Sloyfe_Knute", coll, bow)
+        knot.parent = ob
+        knot.location = (0, 0.02, HEAD[0] + HEAD[3] - 0.01)
+        knot.scale = (0.045, 0.05, 0.045)
+    else:                                              # hårtust på toppen
+        for i, (x, tilt) in enumerate(((-0.06, -25), (0.0, 0), (0.06, 25))):
+            bm = bmesh.new()
+            bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=0.035, radius2=0.0, depth=0.16)
+            bmesh.ops.translate(bm, vec=(0, 0, 0.08), verts=bm.verts)
+            tuft = mesh_object(f"{name}_Tust_{i}", bm, coll, [ob.data.materials[0]])
+            tuft.parent = ob
+            tuft.location = (x, 0.0, HEAD[0] + HEAD[3] - 0.04)
+            tuft.rotation_euler = (math.radians(-10), math.radians(tilt), 0)
 
     # Navneskilt over hodet (kun i viewport, ikke i render)
     cu = bpy.data.curves.new(f"{name}_Navn", "FONT")
@@ -299,23 +389,24 @@ ARMS = {}  # figurnavn -> {-1: venstre arm, 1: høyre arm}
 
 
 def build_arms(ob, coll):
-    """To blokkarmer med flate hender i kroppsfarge, med hele sekvensen.
-    Origo i skulderen, armen peker opp (+Z) i hvilestilling uten rotasjon."""
+    """To vinger i kroppsfarge med fjærtupp som «hånd», med hele sekvensen.
+    Origo i skulderen, vingen peker opp (+Z) i hvilestilling uten rotasjon."""
     arms = {}
     for side in (-1, 1):
         bm = bmesh.new()
-        bmesh.ops.create_cube(bm, size=1.0)
-        bmesh.ops.scale(bm, vec=(0.12, 0.12, 0.5), verts=bm.verts)
-        bmesh.ops.translate(bm, vec=(0, 0, 0.25), verts=bm.verts)
-        arm = mesh_object(f"{ob.name}_Arm_{'V' if side < 0 else 'H'}", bm, coll, [ob.data.materials[0]])
+        ellipsoid_bm(bm, (0.27, 0.085, 0.05, 0.29), segs=(16, 10))
+        arm = mesh_object(f"{ob.name}_Vinge_{'V' if side < 0 else 'H'}", bm, coll, [ob.data.materials[0]])
+        smooth(arm)
         arm.parent = ob
-        arm.location = (side * (CHAR_W / 2 + 0.09), 0, 1.1)
-        bm = bmesh.new()
-        bmesh.ops.create_cube(bm, size=1.0)
-        bmesh.ops.scale(bm, vec=(0.22, 0.05, 0.2), verts=bm.verts)  # spredt hånd
-        hand = mesh_object(arm.name + "_Haand", bm, coll, [ob.data.materials[0]])
-        hand.parent = arm
-        hand.location = (0, 0, 0.58)
+        arm.location = (side * (BODY[1] + 0.04), 0, 0.84)
+        for k, tilt in enumerate((-28, 0, 28)):        # tre fjærtupper
+            bm = bmesh.new()
+            ellipsoid_bm(bm, (0.07, 0.045, 0.03, 0.09), segs=(12, 8))
+            tip = mesh_object(f"{arm.name}_Fjaer_{k}", bm, coll, [ob.data.materials[0]])
+            smooth(tip)
+            tip.parent = arm
+            tip.location = (0.0, 0, 0.5)
+            tip.rotation_euler = (0, math.radians(tilt), 0)
         arms[side] = arm
     ARMS[ob.name] = arms
     return arms
@@ -409,11 +500,19 @@ def throw_blob(name, coll, mat, start, end, f0, f1, height=0.6, side=0.0):
     return ob
 
 
-def splat_on(target, name, coll, mat, f_hit, local_xz, size=(0.22, 0.18)):
-    """Flat malingsflekk på forsiden (lokal -Y) av en karakter."""
+def splat_on(target, name, coll, mat, f_hit, local_xz, size=(0.22, 0.18), phi=None):
+    """Flat malingsflekk som ligger på kroppen. local_xz = (x, z) på forsiden,
+    eller phi = vinkel rundt kroppen (0 forside, 90 høyre, 180 rygg) med z = local_xz[1]."""
+    z = local_xz[1]
+    if phi is None:
+        p0, _ = surface_point(0, z)
+        half = max(abs(surface_point(90, z)[0].x), 0.05)
+        phi = math.degrees(math.asin(max(-0.95, min(0.95, local_xz[0] / half))))
+    p, n = surface_point(phi, z, grow=0.004)
     ob = blob_mesh(name, coll, mat)
     ob.parent = target
-    ob.location = (local_xz[0], -FRONT, local_xz[1])
+    ob.location = p
+    ob.rotation_euler = n.to_track_quat("-Y", "Z").to_euler()
     pop(ob, f_hit, full=(size[0], 0.035, size[1]))
     return ob
 
@@ -456,53 +555,93 @@ def splash(name, coll, mat, origin, f_hit, toward_x, count=6, seed=0):
 # --------------------------------------------------------------------------
 
 def build_paint_coat(target, coll, mat, f_on):
-    """Malingsdrakt over hode og overkropp etter at gutten dukkes i balja."""
-    h = CHAR_H * 0.65
-    bm = bmesh.new()
-    bmesh.ops.create_cube(bm, size=1.0)
-    bmesh.ops.scale(bm, vec=(CHAR_W + 0.05, CHAR_D + 0.05, h), verts=bm.verts)
+    """Malingsdrakt over hode, rygg og skuldre etter at gutten dukkes i balja.
+    Forsiden holdes fri, så den røde forsiden alltid synes."""
     mats = list(mat) if isinstance(mat, (list, tuple)) else [mat]
+    bm = bmesh.new()
+    ellipsoid_bm(bm, BODY, grow=0.035, segs=(24, 14))
+    ellipsoid_bm(bm, HEAD, grow=0.035, segs=(24, 14))
     bm.normal_update()
-    front = [f for f in bm.faces if f.normal.y < -0.9]  # forsiden holdes rød og synlig
-    bmesh.ops.delete(bm, geom=front, context="FACES_ONLY")
+    drop = [f for f in bm.faces if f.normal.y < -0.45 or f.calc_center_median().z < 0.6]
+    bmesh.ops.delete(bm, geom=drop, context="FACES_ONLY")
     for i, f in enumerate(bm.faces):
-        f.material_index = i % len(mats)
+        f.material_index = (i // 7) % len(mats)
     ob = mesh_object("Gutt_Malingsdrakt", bm, coll, mats)
-    bev = ob.modifiers.new("Bevel", "BEVEL")
-    bev.width, bev.segments = 0.06, 3
+    smooth(ob)
     ob.parent = target
-    ob.location = (0, 0, CHAR_H + 0.03 - h / 2)
-    pop(ob, f_on, overshoot=1.1)
+    pop(ob, f_on, overshoot=1.06)
     # Noen fargeflekker på den røde forsiden i stedet for full drakt
-    for i, (xz, size) in enumerate((((-0.2, 1.5), (0.14, 0.12)), ((0.22, 1.2), (0.1, 0.13)),
-                                    ((-0.05, 0.75), (0.12, 0.09)))):
+    for i, (xz, size) in enumerate((((-0.24, 1.58), (0.1, 0.08)), ((0.2, 0.75), (0.1, 0.12)),
+                                    ((-0.12, 0.45), (0.12, 0.09)))):
         splat_on(target, f"Gutt_Forside_Flekk_{i}", coll, pick(mats, i + 1), f_on, xz, size=size)
     return ob
 
 
-def build_smile(target, coll, f_on, prefix, depth=FRONT + 0.03):
-    """Smil og øyne på forsiden, dukker opp i siste shot."""
+def build_smile(target, coll, f_on, prefix, depth=None):
+    """Smil under nebbet, dukker opp når de smiler i kamera."""
     white = bpy.data.materials.get("M_Smil") or material("M_Smil", (0.95, 0.95, 0.95), rough=0.3)
     cu = bpy.data.curves.new(f"{prefix}_Smil", "CURVE")
     cu.dimensions = "3D"
-    cu.bevel_depth = 0.025
+    cu.bevel_depth = 0.018
     sp = cu.splines.new("POLY")
     n = 9
     sp.points.add(n - 1)
     for i, p in enumerate(sp.points):
         a = math.pi + 0.35 + i * (math.pi - 0.7) / (n - 1)
-        p.co = (0.15 * math.cos(a), 0.0, 0.11 * math.sin(a), 1.0)
+        x, z = 0.12 * math.cos(a), 0.07 * math.sin(a)
+        y = surface_point(math.degrees(math.asin(x / 0.38)), 1.14 + z)[0].y - 0.01
+        p.co = (x, y, z, 1.0)
     smile = bpy.data.objects.new(f"{prefix}_Smil", cu)
     coll.objects.link(smile)
     cu.materials.append(white)
     smile.parent = target
-    smile.location = (0, -depth, 1.45)
+    smile.location = (0, 0, 1.14)
     pop(smile, f_on)
+
+
+EYES = {}  # figurnavn -> liste med øyeobjekter (hvite og pupiller) til blunking
+
+
+def build_face(target, coll, gaze):
+    """Store øyne fra første bilde. Pupillene følger blikkmålet `gaze`."""
+    white = bpy.data.materials.get("M_Oyehvitt") or material("M_Oyehvitt", (0.95, 0.95, 0.95), rough=0.2)
+    black = bpy.data.materials.get("M_Pupill") or material("M_Pupill", (0.01, 0.01, 0.01), rough=0.15)
+    parts = []
     for side in (-1, 1):
-        eye = blob_mesh(f"{prefix}_Oye_{'V' if side < 0 else 'H'}", coll, white)
+        tag = "V" if side < 0 else "H"
+        p, n = surface_point(18 * side, EYE_Z)
+        eye = blob_mesh(f"{target.name}_Oye_{tag}", coll, white)
         eye.parent = target
-        eye.location = (0.11 * side, -depth + 0.01, 1.6)
-        pop(eye, f_on, full=(0.04, 0.02, 0.05))
+        eye.location = p - n * 0.02
+        eye.scale = (0.075, 0.06, 0.09)
+        pivot = bpy.data.objects.new(f"{target.name}_Oyepivot_{tag}", None)
+        coll.objects.link(pivot)
+        pivot.parent = target
+        pivot.location = eye.location
+        c = pivot.constraints.new("DAMPED_TRACK")
+        c.target, c.track_axis = gaze, "TRACK_NEGATIVE_Y"
+        c.influence = 0.55                             # pupillen holder seg foran på øyet
+        pupil = blob_mesh(f"{target.name}_Pupill_{tag}", coll, black)
+        pupil.parent = pivot
+        pupil.location = (0, -0.06, 0)
+        pupil.scale = (0.04, 0.025, 0.048)
+        glint = blob_mesh(f"{target.name}_Glans_{tag}", coll, white)  # lysrefleks gir liv
+        glint.parent = pupil
+        glint.location = (0.35, -0.9, 0.4)
+        glint.scale = (0.3, 0.3, 0.3)
+        parts += [eye, pupil]
+    EYES[target.name] = parts
+
+
+def blink(ob_name, frames):
+    """Rask blunk: øynene klemmes sammen i to bilder."""
+    for part in EYES[ob_name]:
+        full = tuple(part.scale)
+        for f in frames:
+            for df, k in ((-1, 1.0), (1, 0.1), (3, 1.0)):
+                part.scale = (full[0], full[1], full[2] * k)
+                part.keyframe_insert("scale", frame=f + df)
+        part.scale = full
 
 
 # --------------------------------------------------------------------------
@@ -514,8 +653,15 @@ def heading(dx, dy):
     return math.degrees(math.atan2(dx, -dy))
 
 
+# Personlighet i gangen: broren tung og klumsete, søsteren lett og sprettende
+GAIT = {"Gutt": dict(hop=0.75, lean=0.85, swing=32, squash=1.4),
+        "Jente": dict(hop=1.3, lean=1.1, swing=55, squash=0.8)}
+
+
 def run(ob, f0, f1, path, stride=6, lean=22, hop=0.16):
     """Løp langs en polylinje med jevn fart og sprett hvert halve steg."""
+    gait = GAIT.get(ob.name, dict(hop=1.0, lean=1.0, swing=45, squash=1.0))
+    hop, lean = hop * gait["hop"], lean * gait["lean"]
     pts = [Vector((x, y, 0.0)) for x, y in path]
     segs = list(zip(pts, pts[1:]))
     total = sum((b - a).length for a, b in segs)
@@ -532,9 +678,10 @@ def run(ob, f0, f1, path, stride=6, lean=22, hop=0.16):
             d -= length
         up = i % 2 == 1 and i < n
         f = round(f0 + (f1 - f0) * t)
-        pose(ob, f, p.x, p.y, hop if up else 0.0, lean, rz, 1.06 if up else 0.94)
+        sq = 0.06 * gait["squash"]
+        pose(ob, f, p.x, p.y, hop if up else 0.0, lean, rz, 1 + sq if up else 1 - sq)
         if ob.name in ARMS:                            # armene svinger i takt med stegene
-            sw = 45 * math.cos(math.pi * i / 2)
+            sw = gait["swing"] * math.cos(math.pi * i / 2)
             arm_key(ob, f, (sw, -165, 0), (-sw, 165, 0))
 
 
@@ -1079,7 +1226,7 @@ def build_paint_fx(coll, pm, boy, girl, cam_end):
 
     # Gutten kaster tilbake: treffer jenta
     throw_blob("Klatt_GuttTilJente", coll, pm["Lilla"], (-0.35, 0.4, 1.75), (1.62, 0.35, 1.1), 316, 326)
-    splat_on(girl, "Flekk_Jente", coll, pm["Lilla"], 326, (0.0, 1.1))
+    splat_on(girl, "Flekk_Jente", coll, pm["Lilla"], 326, (0.12, 0.75))
     splash("Sprut_Jente", coll, pm["Lilla"], (1.6, 0.25, 1.1), 326, toward_x=-1, seed=24)
     floor_puddle("Dam_Jente", coll, pm["Lilla"], (1.5, -0.1), 328, size=0.3)
 
@@ -1088,6 +1235,20 @@ def build_paint_fx(coll, pm, boy, girl, cam_end):
     floor_puddle("Dam_Bom", coll, pm["Rosa"], (-1.3, 0.3), 396, size=0.5, grow=10)
     splash("Sprut_Bom", coll, pm["Rosa"], (-1.3, 0.3, 0.05), 396, toward_x=-1, seed=25)
     floor_puddle("Dam_Spann_Jente", coll, pm["Rosa"], (-1.85, -1.75), 412, size=0.45, grow=25)
+
+    # Malingen bygger seg opp og blir værende (kontinuitet gjennom filmen)
+    # Begge sklir i den gule dammen: gult på ryggen hennes
+    for i, (phi, z, size) in enumerate(((170, 0.7, (0.2, 0.16)), (200, 1.25, (0.14, 0.12)))):
+        splat_on(girl, f"Flekk_Jente_Rygg_{i}", coll, pm["Gul"], 566, (0, z), size=size, phi=phi)
+    # Klemmen: maling fra drakten hans smitter over på høyre side av henne
+    for i, (z, col) in enumerate(((1.0, "Turkis"), (0.62, "Rosa"))):
+        splat_on(girl, f"Flekk_Jente_Klem_{i}", coll, pm[col], 872, (0, z), size=(0.13, 0.11), phi=75)
+    # Hoppeklemmen: mer smitte på siden hennes
+    splat_on(girl, "Flekk_Jente_Hoppeklem", coll, pm["Lime"], PLAY + 13, (0, 0.85), size=(0.14, 0.12), phi=100)
+    # Pladask: han lander med ansiktet i en dam og får maling i fjeset
+    floor_puddle("Dam_Pladask", coll, pm["Rosa"], (-1.5, -5.0), 742, size=0.55, grow=4)
+    for i, (xz, col) in enumerate((((-0.18, 1.56), "Rosa"), ((0.16, 1.3), "Rosa"), ((0.05, 0.6), "Gul"))):
+        splat_on(boy, f"Flekk_Gutt_Pladask_{i}", coll, pm[col], PLAY + 76, xz, size=(0.11, 0.09))
 
     # Avslutning: maling i kamera, tørkes av
     fwd = cam_end.rotation_euler.to_matrix() @ Vector((0, 0, -1))
@@ -1176,8 +1337,8 @@ def push(cam, windows):
 
 def build_cinematic(cams, boy, girl, coll):
     # Fokuspunkter i hodehøyde (følger hodet også i salto og når de ligger)
-    head_b = empty("Fokus_Gutt", coll, (0, 0, 1.45), boy)
-    head_g = empty("Fokus_Jente", coll, (0, 0, 1.45), girl)
+    head_b = empty("Fokus_Gutt", coll, (0, 0, EYE_Z), boy)
+    head_g = empty("Fokus_Jente", coll, (0, 0, EYE_Z), girl)
     mid = empty("Fokus_Midt", coll)
     copy_loc(mid, head_b)
     copy_loc(mid, head_g, 0.5)                         # midt mellom hodene
@@ -1215,7 +1376,6 @@ def build_cinematic(cams, boy, girl, coll):
         ("cu_tease", head_g, [(660, 672, 0.2)]),
         ("cu_hug", mid, [(904, 946, 0.4)]),
         ("cu_run", mid, [(500, 522, 0.3)]),  # f/2.8 under, raske bevegelser
-        ("cu_tub", head_b, [(76, 100, 0.2)]),
         ("cu_splash", head_b, [(238, 252, 0.2)]),
         ("cu_aha", head_g, [(354, 364, 0.15)]),
         ("cu_oops", head_b, [(752, 766, 0.2)]),
@@ -1250,6 +1410,49 @@ def build_cinematic(cams, boy, girl, coll):
     dof(cams["end"], mid, 4.0)
 
 
+def windows_influence(c, windows, ramp=3):
+    """Influence 1 innenfor hvert (f0, f1)-vindu, 0 ellers, med korte overganger."""
+    keys = [(FRAME_START, 0.0)]
+    for f0, f1 in windows:
+        keys += [(f0 - ramp, 0.0), (f0, 1.0), (f1, 1.0), (f1 + ramp, 0.0)]
+    key_influence(c, keys)
+
+
+def build_acting(boy, girl, coll):
+    """Blikkretning og blunking. Pupillene ser rett frem som standard,
+    på den andre i relasjonsøyeblikkene og inn i kamera når de smiler til oss."""
+    look_cam = empty("Blikk_Kamera", coll, (0, -7.5, 1.5))
+    for f, loc in ((1, (0, -7.5, 1.5)), (PLAY, (0, -7.5, 1.5)), (PARTY, (0.6, -9.2, 0.9)),
+                   (DANCE, (0.05, -10.1, 1.4))):
+        look_cam.location = loc
+        look_cam.keyframe_insert("location", frame=f)
+    for fc in fcurves_of(look_cam):
+        for kp in fc.keyframe_points:
+            kp.interpolation = "CONSTANT"
+    head = {"Gutt": bpy.data.objects["Fokus_Jente"], "Jente": bpy.data.objects["Fokus_Gutt"]}
+    plan = {
+        "Gutt": dict(
+            other=[(222, 236), (288, 388), (598, 680), (744, 766), (870, 890), (906, 944),
+                   (PLAY, PLAY + 66)],
+            cam=[(892, 904), (950, 990), (PARTY + 4, PARTY + 40), (DANCE + 12, FRAME_END)]),
+        "Jente": dict(
+            other=[(224, 300), (316, 330), (378, 398), (586, 672), (852, 890), (906, 944),
+                   (PLAY, PLAY + 66), (PLAY + 76, PARTY - 2)],
+            cam=[(778, 850), (892, 904), (950, 990), (PARTY + 2, FRAME_END)]),
+    }
+    for ob in (boy, girl):
+        g = bpy.data.objects[f"Blikk_{ob.name}"]
+        windows_influence(copy_loc(g, head[ob.name]), plan[ob.name]["other"])
+        windows_influence(copy_loc(g, look_cam), plan[ob.name]["cam"])
+    rnd = random.Random(11)
+    for ob, offset in ((boy, 0), (girl, 37)):
+        frames, f = [], 30 + offset
+        while f < FRAME_END - 6:
+            frames.append(f)
+            f += rnd.randint(55, 95)
+        blink(ob.name, frames)
+
+
 # --------------------------------------------------------------------------
 # Slutten: lek, pladask, fest med strobelys, dans mot kamera, grep om kameraet
 # --------------------------------------------------------------------------
@@ -1262,7 +1465,7 @@ def key_arm(arm, f, ry, rx=0.0):
 
 def light_level(f, level):
     """Studiolys og verden i prosent av fullt lys (keyes på frame f)."""
-    full = {"Lys_Key": 750, "Lys_Fill": 200, "Lys_Rim": 800}
+    full = {"Lys_Key": 750, "Lys_Fill": 200, "Lys_Rim": 1100}
     for name, e in full.items():
         ld = bpy.data.objects[name].data
         ld.energy = e * level
@@ -1449,12 +1652,154 @@ def build_ending(boy, girl, coll_char, coll_light, cam):
     cam.location = home
 
 
+def wing_drag(*chars, lag=2):
+    """Etterslep (follow-through): vingene henger litt etter kroppen."""
+    for ob in chars:
+        for arm in ARMS[ob.name].values():
+            for fc in fcurves_of(arm):
+                for kp in fc.keyframe_points:
+                    kp.co.x += lag
+                    kp.handle_left.x += lag
+                    kp.handle_right.x += lag
+                fc.update()
+
+
+def color_script(coll):
+    """Fargemanus: lysstemningen følger historien (key, fill, rim, verden)."""
+    morning = ((1.0, 0.80, 0.60), (0.72, 0.84, 1.0), (1.0, 0.82, 0.62), (0.96, 0.90, 0.82))
+    clash = ((0.90, 0.94, 1.0), (0.60, 0.74, 1.0), (1.0, 0.88, 0.75), (0.85, 0.88, 0.93))
+    chase = ((1.0, 0.92, 0.82), (0.75, 0.85, 1.0), (1.0, 0.90, 0.78), (0.92, 0.90, 0.87))
+    golden = ((1.0, 0.72, 0.46), (0.95, 0.82, 0.72), (1.0, 0.76, 0.48), (0.98, 0.86, 0.72))
+    play = ((1.0, 0.84, 0.66), (0.80, 0.86, 1.0), (1.0, 0.84, 0.66), (0.96, 0.91, 0.84))
+    party = ((0.70, 0.55, 1.0), (0.55, 0.45, 1.0), (1.0, 0.45, 0.85), (0.30, 0.24, 0.45))
+    finale = ((1.0, 0.86, 0.68), (0.85, 0.88, 1.0), (1.0, 0.86, 0.66), (1.0, 0.94, 0.86))
+    grab = DANCE + 122
+    script = [(1, morning), (200, morning), (216, clash), (456, clash), (476, chase), (744, chase),
+              (772, golden), (PLAY, golden), (PLAY + 24, play), (PARTY - 4, play),
+              (PARTY + 4, party), (grab - 4, party), (grab + 4, finale)]
+    names = ("Lys_Key", "Lys_Fill", "Lys_Rim")
+    w = bpy.context.scene.world
+    bg = w.node_tree.nodes.get("Background") if w.node_tree else None
+    for f, look in script:
+        for name, col in zip(names, look):
+            ld = bpy.data.objects[name].data
+            ld.color = col
+            ld.keyframe_insert("color", frame=f)
+        if bg:
+            bg.inputs["Color"].default_value = (*look[3], 1.0)
+            bg.inputs["Color"].keyframe_insert("default_value", frame=f)
+
+    # Dis i festen, så strobelysene får synlige lysstråler
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    haze = mesh_object("Fest_Dis", bm, coll, [])
+    haze.location, haze.scale = (0, -6.0, 3.0), (16, 10, 6)
+    mat = bpy.data.materials.new("M_Dis")
+    try:
+        mat.use_nodes = True
+    except AttributeError:
+        pass
+    nodes = mat.node_tree.nodes
+    for n in list(nodes):
+        if n.type != "OUTPUT_MATERIAL":
+            nodes.remove(n)
+    vol = nodes.new("ShaderNodeVolumePrincipled")
+    vol.inputs["Density"].default_value = 0.035
+    out = [n for n in nodes if n.type == "OUTPUT_MATERIAL"][0]
+    mat.node_tree.links.new(vol.outputs[0], out.inputs["Volume"])
+    haze.data.materials.append(mat)
+    for f, hidden in ((FRAME_START, True), (PARTY, False), (grab + 4, True)):
+        haze.hide_render = hidden
+        haze.keyframe_insert("hide_render", frame=f)
+        haze.hide_viewport = hidden
+        haze.keyframe_insert("hide_viewport", frame=f)
+
+
+def build_set_dressing(coll, pm, metal):
+    """Barnas malerverksted: staffelier med malerier, stige, bord med glass og pensler,
+    presenning og malingstuber. Alt står utenfor løpeveiene."""
+    wood = bpy.data.materials.get("M_Tre")
+    canvas = material("M_Lerret", (0.92, 0.90, 0.85), rough=0.8)
+    cloth = material("M_Presenning", (0.75, 0.68, 0.55), rough=0.9)
+    paints = list(pm.values())
+
+    def box(name, size, loc, rot=(0, 0, 0), mat=wood):
+        bm = bmesh.new()
+        bmesh.ops.create_cube(bm, size=1.0)
+        ob = mesh_object(name, bm, coll, [mat])
+        ob.scale, ob.location = size, loc
+        ob.rotation_euler = [math.radians(a) for a in rot]
+        return ob
+
+    def easel(name, xy, rz, seed):
+        root = bpy.data.objects.new(name, None)
+        coll.objects.link(root)
+        root.location, root.rotation_euler = (*xy, 0), (0, 0, math.radians(rz))
+        for i, (x, y, tilt) in enumerate(((-0.35, 0, (-8, -6)), (0.35, 0, (-8, 6)), (0, 0.45, (14, 0)))):
+            leg = box(f"{name}_Bein_{i}", (0.05, 0.05, 1.9), (x, y, 0.93), (tilt[0], tilt[1], 0))
+            leg.parent = root
+        board = box(f"{name}_Lerret", (0.95, 0.04, 0.75), (0, -0.14, 1.3), (-8, 0, 0), canvas)
+        board.parent = root
+        rnd = random.Random(seed)
+        for k in range(6):                             # barnemaleri: store fargeklatter
+            blob = blob_mesh(f"{name}_Maleri_{k}", coll, pick(paints, seed + k))
+            blob.parent = board
+            blob.location = (rnd.uniform(-0.38, 0.38), -0.6, rnd.uniform(-0.35, 0.35))
+            blob.scale = (rnd.uniform(0.07, 0.15) / 0.95, 0.2, rnd.uniform(0.07, 0.15) / 0.75)
+        return root
+
+    easel("Staffeli_1", (-5.0, 3.8), 20, 1)
+    easel("Staffeli_2", (6.0, 3.6), -25, 4)
+
+    # Presenning med malingsflekker under staffeliet til venstre
+    bm = bmesh.new()
+    bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=1.0)
+    tarp = mesh_object("Presenning", bm, coll, [cloth])
+    tarp.location, tarp.scale = (-5.0, 3.4, 0.004), (1.4, 1.1, 1)
+    tarp.rotation_euler.z = math.radians(12)
+    rnd = random.Random(9)
+    for k in range(7):
+        d = blob_mesh(f"Presenning_Flekk_{k}", coll, pick(paints, k))
+        d.location = (-5.0 + rnd.uniform(-1.1, 1.1), 3.4 + rnd.uniform(-0.8, 0.8), 0.008)
+        d.scale = (rnd.uniform(0.08, 0.2), rnd.uniform(0.08, 0.2), 0.005)
+
+    # Stige som lener seg mot ingenting, klassisk verkstedsilhuett
+    lad = bpy.data.objects.new("Stige", None)
+    coll.objects.link(lad)
+    lad.location, lad.rotation_euler = (-6.8, 1.6, 0), (math.radians(-10), 0, math.radians(15))
+    for x in (-0.25, 0.25):
+        box(f"Stige_Vange_{'V' if x < 0 else 'H'}", (0.06, 0.06, 2.4), (x, 0, 1.2)).parent = lad
+    for k in range(7):
+        box(f"Stige_Trinn_{k}", (0.5, 0.05, 0.04), (0, 0, 0.3 + k * 0.3)).parent = lad
+
+    # Bord med vannglass og pensler til høyre
+    top = box("Bord_Plate", (1.2, 0.7, 0.05), (6.4, -1.2, 0.72))
+    for x in (-0.55, 0.55):
+        for y in (-0.3, 0.3):
+            box(f"Bord_Bein_{x}_{y}", (0.05, 0.05, 0.7), (6.4 + x, -1.2 + y, 0.35))
+    for k, (x, y) in enumerate(((-0.35, -0.1), (0.0, 0.12), (0.32, -0.08))):
+        jar = build_bucket(f"Bord_Glass_{k}", coll, pick(paints, k + 2), metal, r1=0.06, r2=0.07, depth=0.16)
+        jar.location = (6.4 + x, -1.2 + y, 0.745)
+        for j in range(2):
+            brush = box(f"Bord_Pensel_{k}_{j}", (0.015, 0.015, 0.3), (6.4 + x + 0.02 * j, -1.2 + y, 0.9),
+                        (0, 12 - 24 * j, 0))
+    # Malingstuber på trekassa
+    for k, (x, y, rz) in enumerate(((3.95, 1.4, 20), (4.25, 1.7, -35), (4.5, 1.45, 70))):
+        tube = blob_mesh(f"Tube_{k}", coll, pick(paints, k + 4))
+        tube.location, tube.scale = (x, y, 0.95), (0.05, 0.13, 0.04)
+        tube.rotation_euler.z = math.radians(rz)
+
+
 # --------------------------------------------------------------------------
 # Kamera og shots
 # --------------------------------------------------------------------------
 
 def build_cameras(coll):
-    def cam(name, loc, target, lens):
+    def cam(name, loc, target, lens, was=None):
+        """was: tidligere brennvidde; kameraet trekkes bakover så utsnittet blir likt
+        med lengre linse (mykere bakgrunn, mer intimt)."""
+        if was:
+            loc = Vector(target) + (Vector(loc) - Vector(target)) * (lens / was)
         cd = bpy.data.cameras.new(name)
         cd.lens = lens
         cd.clip_start = 0.05
@@ -1466,26 +1811,25 @@ def build_cameras(coll):
         return ob
 
     cams = {
-        "wide": cam("CAM_01_Wide", (0, -9.0, 1.7), (0.2, 0, 1.0), 32),
-        "medium": cam("CAM_02_Medium", (1.6, -5.0, 1.7), (0.6, 0.4, 1.1), 35),
+        "wide": cam("CAM_01_Wide", (0, -9.0, 1.45), (0.2, 0, 1.0), 32),
+        "medium": cam("CAM_02_Medium", (1.6, -5.0, 1.45), (0.6, 0.4, 1.1), 35),
         "deep": cam("CAM_03_Dyp", (0.5, -8.5, 1.2), (0, 1.5, 1.0), 30),
         "end": cam("CAM_04_Ende", (0, -7.5, 1.5), (0.3, -3.5, 1.25), 24),
         # Nærbilder på relasjonen mellom dem (statiske, siktet mot hodehøyde)
         "cu_boy_ots": cam("CAM_CU_01_Gutt_OTS", (3.3, -0.6, 1.75), (1.0, 0.35, 1.3), 38),
-        "cu_girl_laugh": cam("CAM_CU_02_Jente_Ler", (-0.9, -0.6, 1.75), (1.85, 0.35, 1.3), 40),
-        "cu_boy_front": cam("CAM_CU_03_Gutt", (0.6, -0.9, 1.5), (-0.9, 0.4, 1.3), 36),
-        "cu_girl_hit": cam("CAM_CU_04_Jente_Treff", (0.5, -1.0, 1.55), (2.1, 0.35, 1.3), 38),
+        "cu_girl_laugh": cam("CAM_CU_02_Jente_Ler", (-0.9, -0.6, 1.5), (1.85, 0.35, 1.3), 55, was=40),
+        "cu_boy_front": cam("CAM_CU_03_Gutt", (0.6, -0.9, 1.45), (-0.9, 0.4, 1.3), 50, was=36),
+        "cu_girl_hit": cam("CAM_CU_04_Jente_Treff", (0.5, -1.0, 1.45), (2.1, 0.35, 1.3), 50, was=38),
         "cu_lying": cam("CAM_CU_05_Liggende", (-1.0, -2.7, 2.6), (-1.0, -1.85, 0.3), 32),
-        "cu_tease": cam("CAM_CU_06_Erting_OTS", (1.6, -3.6, 1.6), (-0.4, -2.9, 1.3), 34),
-        "cu_hug": cam("CAM_CU_07_Klem", (0.6, -6.6, 1.55), (0.06, -5.0, 1.45), 35),
+        "cu_tease": cam("CAM_CU_06_Erting_OTS", (1.6, -3.6, 1.6), (-0.4, -2.9, 1.3), 45, was=34),
+        "cu_hug": cam("CAM_CU_07_Klem", (0.6, -6.6, 1.42), (0.06, -5.0, 1.4), 50, was=35),
         "cu_run": cam("CAM_CU_08_Loep", (-5.0, 4.6, 0.9), (0.0, 5.0, 1.0), 26),
         # Følger gutten bakfra (posisjonen er en offset fra ham, se build_cinematic)
         "track": cam("CAM_00_Tracking", (-2.4, -0.6, 1.5), (0, 0.4, 1.0), 30),
-        "cu_tub": cam("CAM_CU_09_Fra_Balja", (0.4, 0.2, 0.62), (-0.9, 0.4, 1.45), 16),
         "cu_prints": cam("CAM_CU_10_Handavtrykk", (-0.2, -2.7, 1.1), (-0.25, -1.45, 0.0), 30),
         "cu_splash": cam("CAM_CU_11_Plask", (1.2, -1.1, 0.9), (0.0, 0.4, 0.9), 28),
-        "cu_aha": cam("CAM_CU_12_Aha", (3.9, 1.7, 1.3), (2.25, 0.35, 1.45), 40),
-        "cu_oops": cam("CAM_CU_13_Oi", (0.8, -1.5, 1.5), (0.95, 0.4, 1.35), 42),
+        "cu_aha": cam("CAM_CU_12_Aha", (3.9, 1.7, 1.4), (2.25, 0.35, 1.4), 50, was=40),
+        "cu_oops": cam("CAM_CU_13_Oi", (0.8, -1.5, 1.42), (0.95, 0.4, 1.35), 55, was=42),
         "cu_jump": cam("CAM_CU_14_Hoppeklem", (0.3, -7.9, 1.5), (0.3, -5.0, 1.4), 28),
         "dance": cam("CAM_15_Dans", (0.05, -10.1, 1.4), (0.05, -6.0, 1.3), 28),
         "cu_ots_tub": cam("CAM_CU_15_Ned_I_Balja_OTS", (-1.45, -0.95, 2.35), (0.0, 0.4, 0.5), 30),
@@ -1500,12 +1844,10 @@ def build_cameras(coll):
     scene = bpy.context.scene
     shots = [
         (1, "track", "SH010 Følger gutten bakfra til balja"),
-        (76, "cu_tub", "SH011 CU fra balja: han oppdager regnbuemalingen"),
         (86, "cu_ots_tub", "SH011b Over skulderen hans, ned i regnbuemalingen"),
         (100, "wide", "SH012 Kaster maling rundt seg"),
         (156, "cu_prints", "SH013 Innklipp: håndavtrykk på gulvet"),
         (190, "wide", "SH014 Beundrer verket sitt"),
-        (212, "medium", "SH020 Søster kommer"),
         (222, "cu_boy_ots", "SH021 CU Gutten ser henne (OTS)"),
         (228, "medium", "SH022 Spark, hodet ned i balja"),
         (238, "cu_splash", "SH0225 CU Plask, hodet først i balja"),
@@ -1794,7 +2136,9 @@ def main():
     bucket_b = build_bucket("Spann_Gutt", c_props, pm["Gul"], metal)
     bucket_g = build_bucket("Spann_Jente", c_props, pm["Rosa"], metal)
     build_smile(girl, c_char, 810, "Jente")
-    build_smile(boy, c_char, 892, "Gutt", depth=FRONT + 0.04)
+    build_smile(boy, c_char, 892, "Gutt")
+    for ob in (boy, girl):                             # blikkmål rett frem, styres i build_acting()
+        build_face(ob, c_char, empty(f"Blikk_{ob.name}", c_char, (0, -4.0, EYE_Z), ob))
     ARMS.clear()
     build_arms(boy, c_char)
     build_arms(girl, c_char)
@@ -1807,10 +2151,14 @@ def main():
     animate_props(tub, bucket_g, bucket_b)
     cams = build_cameras(c_cam)
     build_cinematic(cams, boy, girl, c_cam)
+    build_acting(boy, girl, c_char)
     build_paint_fx(c_fx, pm, boy, girl, cams["end"])
     build_knockables(c_props, c_fx, pm, metal)
     build_paint_marks(c_fx, pm)
     build_ending(boy, girl, c_char, c_light, cams["dance"])
+    wing_drag(boy, girl)
+    color_script(c_light)
+    build_set_dressing(c_set, pm, metal)
     setup_render()
     apply_cuts()
     apply_holds()

@@ -1,6 +1,6 @@
 # Kylling-previs (Blender)
 
-Blokking-previs av de to kyllingene i et hvitt, Pixar-aktig studio.
+Previs av de to kyllingene i et Pixar-aktig malerverksted for barn.
 De erter hverandre og kaster maling på hverandre.
 
 ![Kontaktark](contact_sheet.jpg)
@@ -23,29 +23,60 @@ Skriptet tømmer scenen og bygger alt på nytt hver gang det kjøres, så du kan
 
 ## Karakterene
 
-| Blokk | Karakter | Kropp | Forside |
+| Figur | Karakter | Kropp | Forside |
 |------|----------|-------|---------|
-| `Gutt` | Gul kylling i oransje snekkerbukse | svart | rød |
-| `Jente` | Gul kylling i korall kjole med sløyfe | hvit | rød |
+| `Gutt` | Gul kylling i oransje snekkerbukse | svart, med hårtust | rød |
+| `Jente` | Gul kylling i korall kjole med sløyfe | hvit, med rosa sløyfe | rød |
 
-- Høy blokk på 0,7 × 0,5 × 1,7 m (bredde × dybde × høyde), så den leses som en person. Origo er i bunnen, så squash/stretch skjer fra gulvet. Mål endres i `CHAR_W`, `CHAR_D` og `CHAR_H` øverst i skriptet.
-- Forsiden (lokal −Y) er rød, så du alltid ser hvilken vei de ser. Også etter at gutten er dukket i balja, er forsiden hans rød med fargeflekker, for malingsdrakten dekker bare hode, sider og rygg.
-- Begge har enkle blokkarmer med flate hender i kroppsfarge gjennom hele sekvensen. Armene svinger når de løper, og brukes til å øse, kaste, peke, holde spannet, dukke, tørke linsa og klemme.
-- Navneskilt over hodet vises bare i viewport, ikke i render.
+- **Kyllingform med barnslige proporsjoner:** eggformet kropp og stort hode, 1,7 m høy, med origo nederst, så squash/stretch skjer fra gulvet. Formene settes av `BODY` og `HEAD` øverst i skriptet. I tillegg har de nebb, føtter og vinger med tre fjærtupper som «hender». Silhuetten og posene er dermed nær det AI-looken skal bli.
+- **Rød forside:** ansiktet og magen er røde, så du alltid ser hvilken vei de ser. Overgangen er myk og styres av materialet (`front_mask_material()`). Malingsdrakten gutten får i balja dekker hode, rygg og skuldre, men aldri forsiden.
+- **Øyne fra første bilde:** store øyne med pupill og lysrefleks. Pupillene følger et blikkmål (`Blikk_Gutt`, `Blikk_Jente`). De ser rett frem som standard, på den andre i relasjonsøyeblikkene og inn i kamera når de smiler til oss. Begge blunker med ujevne mellomrom. Dette styres i `build_acting()`.
+- **Vinger:** begge har vinger gjennom hele sekvensen. De svinger når de løper, og brukes til å øse, kaste, peke, holde spannet, dukke, tørke linsa og klemme. Vingene henger to bilder etter kroppen (follow-through, `wing_drag()`).
+- **Personlighet i bevegelsen:** broren løper tungt og klumsete med lave sprett og mye squash. Søsteren er lett og sprettende med høye sprett og store vingesving. Dette settes i `GAIT`.
+- **Smil:** smilet under nebbet kommer når de smiler i kamera.
+- **Navneskilt:** skiltet over hodet vises bare i viewport, ikke i render.
 
-## Studio
+## Verkstedet
 
 - Hvit cyclorama (gulvet bøyer seg opp i bakveggen), ingen synlig horisont.
-- Tre-punkts område-lys: varm key, kjølig fill, rim bakfra.
+- **Barnas malerverksted** (`build_set_dressing()`):
+  - to staffelier med barnemalerier
+  - presenning med malingsflekker
+  - en stige
+  - et bord med vannglass og pensler
+  - malingstuber på trekassa
+
+  Alt står utenfor løpeveiene og gir dybde og skala bak handlingen.
 - Rekvisitter: trekasse, en stor regnbuebalje midt på gulvet (én kile i hver farge), et gult og et rosa malingsspann.
 - Rommet blir gradvis mer malt. Det kommer flekker rundt hvert søl (kast, balja, risting, treff, tårnet, skliingen), og fargede fotavtrykk etter dem når de løper. Gutten drypper turkis og lilla etter dukkingen, og søster tråkker rosa. Dette lages i `build_paint_marks()`.
-- Malingen er i lyse, lekne farger: rosa, turkis, gul, lime, lilla, oransje og himmelblå. Hvert kast har sin egen farge, håndavtrykkene går i regnbuerekkefølge, og gutten blir dekket av flere farger når han dukkes i balja.
+- **Malingen bygger seg opp på figurene og blir værende:**
+  - søster får lilla på magen når hun treffes
+  - søster får gult på ryggen når hun sklir i dammen
+  - drakten hans smitter over på siden hennes i klemmen og hoppeklemmen
+  - han får rosa i fjeset når han går pladask i en dam
+
+  Slik blir de renere i starten og stadig mer fargerike mot slutten.
+- Malingen er i lyse, lekne farger: rosa, turkis, gul, lime, lilla, oransje og himmelblå.
+
+## Lys og fargemanus
+
+Tre-punkts område-lys (varm key, kjølig fill og kraftig rimlys bakfra som skiller figurene fra den hvite bakgrunnen). `color_script()` endrer fargen på lyset og verden etter historien:
+
+| Del | Stemning |
+|-----|----------|
+| Åpning | varmt morgenlys |
+| Søster kommer og malingskampen | kjøligere, mer kontrast |
+| Jakten | lyst og nøytralt |
+| Linsa og klemmen | gyllent |
+| Leken | varmt og lekent |
+| Festen | dempet lilla, strobelys i fire farger og dis (`Fest_Dis`) som gir synlige lysstråler |
+| Slutten | lyst og varmt når de griper kameraet |
 
 ## Handling (24 fps, 1580 frames ≈ 66 sek)
 
 | Frames | Del | Hva skjer |
 |--------|-----|-----------|
-| 1–215 | Åpning | Et følgeskudd bakfra følger gutten (svart) mens han løper inn. Nærbilde fra balja: han titter ned og jubler. Over skulderen hans ser vi ned i regnbuemalingen. Han kaster maling rundt seg (total), et innklipp viser håndavtrykkene, og han står og beundrer verket sitt. |
+| 1–215 | Åpning | Et følgeskudd bakfra følger gutten (svart) mens han løper inn og titter ned i balja. Over skulderen hans ser vi ned i regnbuemalingen. Han kaster maling rundt seg (total), et innklipp viser håndavtrykkene, og han står og beundrer verket sitt. |
 | 216–369 | Søster kommer | Han ser søster komme. Hun sparker ham, og han havner med hodet først i balja. Hun ler godt av ham, og han spretter opp full av maling, rister seg og blir stående og stirre på henne. |
 | 370–595 | Malingskamp | Han kaster på henne. Hun får sjokk og blir sint, ser spannet («aha!»), kaster og bommer. Han fryser («uh-oh»), og hun jager ham. Begge løper helt ut av bildet, kameraet panorerer raskt til høyre, og de kommer inn igjen. |
 | 596–821 | Jakten dypt i rommet | De løper dypt inn i rommet. Hun river ned tårnet. Begge sklir i den gule dammen og ligger og ler hode mot hode, så kommer en piruett og et dunk. Til slutt erter hun ham. |
@@ -95,12 +126,10 @@ Tingene lages i `build_knockables()`. `knock_over()` velter én ting, og `scatte
 | Frame | Kamera | Shot |
 |-------|--------|------|
 | 1 | `CAM_00_Tracking` | SH010 Følger gutten bakfra til balja |
-| 76 | `CAM_CU_09_Fra_Balja` | SH011 CU fra balja: han oppdager regnbuemalingen |
 | 86 | `CAM_CU_15_Ned_I_Balja_OTS` | SH011b Over skulderen hans, ned i regnbuemalingen |
 | 124 | `CAM_01_Wide` | SH012 Kaster maling rundt seg |
 | 166 | `CAM_CU_10_Handavtrykk` | SH013 Innklipp: håndavtrykk på gulvet |
 | 182 | `CAM_01_Wide` | SH014 Beundrer verket sitt |
-| 216 | `CAM_02_Medium` | SH020 Søster kommer |
 | 226 | `CAM_CU_01_Gutt_OTS` | SH021 CU Gutten ser henne (OTS) |
 | 248 | `CAM_02_Medium` | SH022 Spark, hodet ned i balja |
 | 258 | `CAM_CU_11_Plask` | SH0225 CU Plask, hodet først i balja |
@@ -143,12 +172,16 @@ Over-skulder-bildene (OTS) har den andre figuren i forgrunnen, så relasjonen me
 Dette gjør `build_cinematic()`:
 - **Følger hodene:** alle kameraer unntatt sluttkameraet har *Track To* mot et fokuspunkt i hodehøyde, `Fokus_Gutt`, `Fokus_Jente` eller `Fokus_Midt` mellom dem. Bildet panorerer mykt etter figurene og følger hodet også i salto og når de ligger.
 - **Følgeskudd i åpningen:** `CAM_00_Tracking` henger etter gutten bakfra (Copy Location med offset) og sikter på hodet hans.
-- **Wide panorerer etter handlingen:** først etter gutten, og etter begge når søster kommer inn. Det står i øyehøyde (1,7 m) i stedet for ovenfra, og det brukes der handlingen trenger oversikt.
+- **Wide panorerer etter handlingen:** først etter gutten, og etter begge når søster kommer inn. Det brukes der handlingen trenger oversikt.
+- **Barnas øyehøyde:** wide, medium og nærbildene står i figurenes øyehøyde (ca. 1,4 m), og fokuspunktene sitter i øynene (`EYE_Z`).
+- **Lengre linser på de emosjonelle nærbildene:** 45–55 mm i stedet for 34–42 mm (latter, treff, aha, oi, erting og klem). Kameraet er trukket bakover så utsnittet er likt, men bakgrunnen blir mykere og bildet mer intimt. Vidvinkel brukes til komikk og action.
+- **Færre, lengre skudd:** de to korteste skuddene (0,4 s) er slått sammen med naboskuddene. Følgeskuddet går helt til balja, og søster kommer inn i wide.
+- **Skjermretning:** jakten holder retningen (ut til venstre, inn igjen fra høyre etter piskepanoreringen).
 - **Sakte innkjøringer:** hvert skudd skyver sakte innover, 0,15–1,2 m i løpet av skuddet.
 - **Dybdeskarphet:** nærbilder på f/2.0 og løpe-nærbildet på f/2.8. Medium, dyp og sluttkameraet bruker f/4, og wide f/5.6. Fokus følger alltid hodene.
 - **Bevegelsesuskarphet:** slått på for alle skudd.
 - **Fargelook:** AgX med *Punchy*, for fyldigere og mer mettede farger.
-- **Lys:** varmere key, kjøligere fill og sterkere varmt rimlys, så figurene skiller seg fra bakgrunnen.
+- **Lys:** se *Lys og fargemanus* over.
 
 Kamerabyttene ligger som markører på tidslinja, bundet til kameraene, så *Viewport Render Animation* og vanlig render klipper automatisk.
 
@@ -161,7 +194,9 @@ I tillegg ligger det markører som heter `Uttrykk …` (uten kamera). De angir h
   - `retning`: 90 = ser mot høyre, −90 = mot venstre, 0 = mot kamera.
   - `squash < 1` gir squash, `> 1` gir stretch.
   - `raw=True` bruker vinkelen udempet (salto, ligge på ryggen). `spin=True` gir hele piruetter.
-- **Armer:** `animate_boy_arms()` og `animate_girl_arms()` er lister med `(frame, venstre, høyre)`, der hver arm får en navngitt pose fra `ARM_POSES` (for eksempel `heng`, `jubel`, `kast`-posene `bak`/`fram_opp`, `dukk`, `klem`) eller egne vinkler `(rx, ry, rz)`. Armsvingen under løping legges inn automatisk av `run()`.
+- **Vinger:** `animate_boy_arms()` og `animate_girl_arms()` er lister med `(frame, venstre, høyre)`, der hver vinge får en navngitt pose fra `ARM_POSES` (for eksempel `heng`, `jubel`, `kast`-posene `bak`/`fram_opp`, `dukk`, `klem`) eller egne vinkler `(rx, ry, rz)`. Vingesvingen under løping legges inn automatisk av `run()`.
+- **Blikk og blunk:** vinduene i `build_acting()` sier når hver av dem ser på den andre (`other`) eller i kamera (`cam`).
+- **Lys:** stemningene og når de skifter står i `color_script()`.
 - **Tempo:** `CUTS` i skriptet er en liste over tidsbiter som klippes ut. Alt etter et klipp flyttes frem automatisk, så du kan stramme eller løsne tempoet uten å flytte hver keyframe for hånd. Frame-tallene i animasjonskoden er de opprinnelige tallene, før klippene.
 - **Pusterom:** `HOLDS` i skriptet er en liste over pauser `(frame, lengde)` som legges inn etter klippene. Alt står stille og figurene puster litt, mens sprut som er i lufta får fly ferdig. `END_HOLD` lar siste bilde stå litt før slutt.
 - **Maling:** `build_paint_fx()` styrer klatter, dammer, håndavtrykk, malingsdrakten og malingen på linsa.
@@ -171,4 +206,4 @@ I tillegg ligger det markører som heter `Uttrykk …` (uten kamera). De angir h
 ## Til AI-look
 
 Render en shot med EEVEE eller viewport-render, og bruk de to referansebildene som stil-/karakter-referanse i AI-verktøyet.
-Gutten er den svarte blokken og jenta den hvite. Den røde forsiden og blokkens retning viser hvor hodet og blikket skal peke.
+Gutten er den svarte kyllingen og jenta den hvite. Den røde forsiden og pupillene viser hvor hodet og blikket skal peke.
