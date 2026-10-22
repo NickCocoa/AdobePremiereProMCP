@@ -1,13 +1,11 @@
 {
   "mcpServers": {
-    "premierpro-mcp": {
-      "type": "stdio",
-      "command": "/Users/ayushojha/Desktop/Projects/MCPs/PremierProMCP/go-orchestrator/bin/premierpro-mcp",
-      "args": [
-        "--log-level",
-        "error"
-      ],
-      "env": {}
+    "supoclip": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/FujiwaraChoki/supoclip@dadd802d634a74c7abebdc288e0f8a41750e977e#subdirectory=mcp", "supoclip-mcp"],
+      "env": {
+        "SUPOCLIP_API_KEY": "${SUPOCLIP_API_KEY:-}"
+      }
     }
   }
 }
