@@ -1,0 +1,7 @@
+# SupoClip MCP server (https://github.com/FujiwaraChoki/supoclip/tree/main/mcp).
+# Set SUPOCLIP_API_KEY in your shell; create a key at supoclip.com under Settings -> API Keys.
+[mcp_servers.supoclip]
+command = "uvx"
+args = ["--from", "git+https://github.com/FujiwaraChoki/supoclip@dadd802d634a74c7abebdc288e0f8a41750e977e#subdirectory=mcp", "supoclip-mcp"]
+env_vars = ["SUPOCLIP_API_KEY"]
+startup_timeout_sec = 120

@@ -8,6 +8,17 @@
         "error"
       ],
       "env": {}
+    },
+    "supoclip": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/FujiwaraChoki/supoclip@dadd802d634a74c7abebdc288e0f8a41750e977e#subdirectory=mcp",
+        "supoclip-mcp"
+      ],
+      "env": {
+        "SUPOCLIP_API_KEY": "${SUPOCLIP_API_KEY:-}"
+      }
     }
   }
 }
